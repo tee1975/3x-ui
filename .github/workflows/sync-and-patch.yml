@@ -1,0 +1,49 @@
+name: Sync upstream & patch installer
+
+on:
+  # 每天 04:00 UTC 自动跑一遍
+  schedule:
+    - cron: '0 4 * * *'
+
+  # 允许在 Actions 页面手动触发
+  workflow_dispatch:
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repo
+      uses: actions/checkout@v4
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+        # 把上游仓库一并拉下来
+        fetch-depth: 0
+
+    - name: Configure git
+      run: |
+        git config user.name "github-actions[bot]"
+        git config user.email "github-actions[bot]@users.noreply.github.com"
+
+    - name: Add upstream remote
+      run: |
+        git remote add upstream https://github.com/MHSanaei/3x-ui.git || true
+        git fetch upstream --tags
+
+    - name: Merge upstream/master
+      run: |
+        git checkout master
+        git merge --no-edit upstream/master
+
+    - name: Patch install.sh
+      run: |
+        sed -i 's|MHSanaei/3x-ui|tee1975/3x-ui|g' install.sh
+        sed -i 's|raw.githubusercontent.com/MHSanaei/3x-ui|raw.githubusercontent.com/tee1975/3x-ui|g' install.sh
+        sed -i 's|github.com/MHSanaei/3x-ui|github.com/tee1975/3x-ui|g' install.sh
+
+    - name: Commit & push changes
+      run: |
+        git add install.sh
+        # 只有在真正改动时才提交，避免空 commit
+        git diff --cached --quiet || git commit -m "chore: auto-patch installer after upstream sync"
+        git push origin master
