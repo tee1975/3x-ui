@@ -8,11 +8,11 @@ import (
 	"strings"
 	"time"
 
-	"x-ui/database"
-	"x-ui/database/model"
-	"x-ui/logger"
-	"x-ui/util/common"
-	"x-ui/xray"
+	"github.com/mhsanaei/3x-ui/database"
+	"github.com/mhsanaei/3x-ui/database/model"
+	"github.com/mhsanaei/3x-ui/logger"
+	"github.com/mhsanaei/3x-ui/util/common"
+	"github.com/mhsanaei/3x-ui/xray"
 
 	"gorm.io/gorm"
 )
@@ -1953,7 +1953,6 @@ func (s *InboundService) GetClientTrafficByEmail(email string) (traffic *xray.Cl
 	if t != nil && client != nil {
 		t.Enable = client.Enable
 		t.SubId = client.SubID
-		t.UUID = client.ID
 		return t, nil
 	}
 	return nil, nil
@@ -1995,7 +1994,6 @@ func (s *InboundService) GetClientTrafficByID(id string) ([]xray.ClientTraffic, 
 		if ct, client, e := s.GetClientByEmail(traffics[i].Email); e == nil && ct != nil && client != nil {
 			traffics[i].Enable = client.Enable
 			traffics[i].SubId = client.SubID
-			traffics[i].UUID = client.ID
 		}
 	}
 	return traffics, err

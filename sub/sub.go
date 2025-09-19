@@ -13,13 +13,13 @@ import (
 	"strconv"
 	"strings"
 
-	"x-ui/logger"
-	"x-ui/util/common"
-	webpkg "x-ui/web"
-	"x-ui/web/locale"
-	"x-ui/web/middleware"
-	"x-ui/web/network"
-	"x-ui/web/service"
+	"github.com/mhsanaei/3x-ui/logger"
+	"github.com/mhsanaei/3x-ui/util/common"
+	webpkg "github.com/mhsanaei/3x-ui/web"
+	"github.com/mhsanaei/3x-ui/web/locale"
+	"github.com/mhsanaei/3x-ui/web/middleware"
+	"github.com/mhsanaei/3x-ui/web/network"
+	"github.com/mhsanaei/3x-ui/web/service"
 
 	"github.com/gin-gonic/gin"
 )
@@ -30,7 +30,7 @@ func setEmbeddedTemplates(engine *gin.Engine) error {
 		webpkg.EmbeddedHTML(),
 		"html/common/page.html",
 		"html/component/aThemeSwitch.html",
-		"html/subscription.html",
+		"html/settings/panel/subscription/subpage.html",
 	)
 	if err != nil {
 		return err
@@ -81,6 +81,12 @@ func (s *Server) initRouter() (*gin.Engine, error) {
 	}
 
 	JsonPath, err := s.settingService.GetSubJsonPath()
+	if err != nil {
+		return nil, err
+	}
+
+	// Determine if JSON subscription endpoint is enabled
+	subJsonEnable, err := s.settingService.GetSubJsonEnable()
 	if err != nil {
 		return nil, err
 	}
@@ -186,7 +192,7 @@ func (s *Server) initRouter() (*gin.Engine, error) {
 	g := engine.Group("/")
 
 	s.sub = NewSUBController(
-		g, LinksPath, JsonPath, Encrypt, ShowInfo, RemarkModel, SubUpdates,
+		g, LinksPath, JsonPath, subJsonEnable, Encrypt, ShowInfo, RemarkModel, SubUpdates,
 		SubJsonFragment, SubJsonNoises, SubJsonMux, SubJsonRules, SubTitle)
 
 	return engine, nil
@@ -207,7 +213,7 @@ func (s *Server) getHtmlFiles() ([]string, error) {
 		files = append(files, theme)
 	}
 	// page itself
-	page := filepath.Join(dir, "web", "html", "subscription.html")
+	page := filepath.Join(dir, "web", "html", "subpage.html")
 	if _, err := os.Stat(page); err == nil {
 		files = append(files, page)
 	} else {

@@ -1,8 +1,8 @@
 package job
 
 import (
-	"x-ui/logger"
-	"x-ui/web/service"
+	"github.com/mhsanaei/3x-ui/logger"
+	"github.com/mhsanaei/3x-ui/web/service"
 )
 
 type Period string
@@ -20,11 +20,15 @@ func NewPeriodicTrafficResetJob(period Period) *PeriodicTrafficResetJob {
 
 func (j *PeriodicTrafficResetJob) Run() {
 	inbounds, err := j.inboundService.GetInboundsByTrafficReset(string(j.period))
-	logger.Infof("Running periodic traffic reset job for period: %s", j.period)
 	if err != nil {
 		logger.Warning("Failed to get inbounds for traffic reset:", err)
 		return
 	}
+
+	if len(inbounds) == 0 {
+		return
+	}
+	logger.Infof("Running periodic traffic reset job for period: %s (%d matching inbounds)", j.period, len(inbounds))
 
 	resetCount := 0
 

@@ -18,14 +18,14 @@ import (
 	"strings"
 	"time"
 
-	"x-ui/config"
-	"x-ui/database"
-	"x-ui/database/model"
-	"x-ui/logger"
-	"x-ui/util/common"
-	"x-ui/web/global"
-	"x-ui/web/locale"
-	"x-ui/xray"
+	"github.com/mhsanaei/3x-ui/config"
+	"github.com/mhsanaei/3x-ui/database"
+	"github.com/mhsanaei/3x-ui/database/model"
+	"github.com/mhsanaei/3x-ui/logger"
+	"github.com/mhsanaei/3x-ui/util/common"
+	"github.com/mhsanaei/3x-ui/web/global"
+	"github.com/mhsanaei/3x-ui/web/locale"
+	"github.com/mhsanaei/3x-ui/xray"
 
 	"github.com/google/uuid"
 	"github.com/mymmrac/telego"
@@ -1581,23 +1581,6 @@ func (t *Tgbot) answerCallback(callbackQuery *telego.CallbackQuery, isAdmin bool
 		)
 		prompt_message := t.I18nBot("tgbot.messages.comment_prompt", "ClientComment=="+client_Comment)
 		t.SendMsgToTgbot(chatId, prompt_message, cancel_btn_markup)
-	default:
-		// dynamic callbacks
-		if strings.HasPrefix(callbackQuery.Data, "client_sub_links ") {
-			email := strings.TrimPrefix(callbackQuery.Data, "client_sub_links ")
-			t.sendClientSubLinks(chatId, email)
-			return
-		}
-		if strings.HasPrefix(callbackQuery.Data, "client_individual_links ") {
-			email := strings.TrimPrefix(callbackQuery.Data, "client_individual_links ")
-			t.sendClientIndividualLinks(chatId, email)
-			return
-		}
-		if strings.HasPrefix(callbackQuery.Data, "client_qr_links ") {
-			email := strings.TrimPrefix(callbackQuery.Data, "client_qr_links ")
-			t.sendClientQRLinks(chatId, email)
-			return
-		}
 	case "add_client_ch_default_traffic":
 		inlineKeyboard := tu.InlineKeyboard(
 			tu.InlineKeyboardRow(
@@ -1812,6 +1795,22 @@ func (t *Tgbot) answerCallback(callbackQuery *telego.CallbackQuery, isAdmin bool
 			msg := fmt.Sprintf("📧 %s\n%s", extra_emails, t.I18nBot("tgbot.noResult"))
 			t.SendMsgToTgbot(chatId, msg, tu.ReplyKeyboardRemove())
 
+		}
+	default:
+		if after, ok := strings.CutPrefix(callbackQuery.Data, "client_sub_links "); ok {
+			email := after
+			t.sendClientSubLinks(chatId, email)
+			return
+		}
+		if after, ok := strings.CutPrefix(callbackQuery.Data, "client_individual_links "); ok {
+			email := after
+			t.sendClientIndividualLinks(chatId, email)
+			return
+		}
+		if after, ok := strings.CutPrefix(callbackQuery.Data, "client_qr_links "); ok {
+			email := after
+			t.sendClientQRLinks(chatId, email)
+			return
 		}
 	}
 }
@@ -2093,6 +2092,7 @@ func (t *Tgbot) buildSubscriptionURLs(email string) (string, string, error) {
 	subPort, _ := t.settingService.GetSubPort()
 	subPath, _ := t.settingService.GetSubPath()
 	subJsonPath, _ := t.settingService.GetSubJsonPath()
+	subJsonEnable, _ := t.settingService.GetSubJsonEnable()
 	subKeyFile, _ := t.settingService.GetSubKeyFile()
 	subCertFile, _ := t.settingService.GetSubCertFile()
 
@@ -2137,6 +2137,9 @@ func (t *Tgbot) buildSubscriptionURLs(email string) (string, string, error) {
 
 	subURL := fmt.Sprintf("%s://%s%s%s", scheme, host, subPath, client.SubID)
 	subJsonURL := fmt.Sprintf("%s://%s%s%s", scheme, host, subJsonPath, client.SubID)
+	if !subJsonEnable {
+		subJsonURL = ""
+	}
 	return subURL, subJsonURL, nil
 }
 
@@ -2146,8 +2149,10 @@ func (t *Tgbot) sendClientSubLinks(chatId int64, email string) {
 		t.SendMsgToTgbot(chatId, t.I18nBot("tgbot.answers.errorOperation")+"\r\n"+err.Error())
 		return
 	}
-	msg := "Subscription URL:\r\n<code>" + subURL + "</code>\r\n\r\n" +
-		"JSON URL:\r\n<code>" + subJsonURL + "</code>"
+	msg := "Subscription URL:\r\n<code>" + subURL + "</code>"
+	if subJsonURL != "" {
+		msg += "\r\n\r\nJSON URL:\r\n<code>" + subJsonURL + "</code>"
+	}
 	inlineKeyboard := tu.InlineKeyboard(
 		tu.InlineKeyboardRow(
 			tu.InlineKeyboardButton(t.I18nBot("subscription.individualLinks")).WithCallbackData(t.encodeQuery("client_individual_links "+email)),
@@ -2271,15 +2276,17 @@ func (t *Tgbot) sendClientQRLinks(chatId int64, email string) {
 		t.SendMsgToTgbot(chatId, t.I18nBot("tgbot.answers.errorOperation")+"\r\n"+err.Error())
 	}
 
-	// Send JSON URL QR (filename: subjson.png)
-	if png, err := createQR(subJsonURL, 320); err == nil {
-		document := tu.Document(
-			tu.ID(chatId),
-			tu.FileFromBytes(png, "subjson.png"),
-		)
-		_, _ = bot.SendDocument(context.Background(), document)
-	} else {
-		t.SendMsgToTgbot(chatId, t.I18nBot("tgbot.answers.errorOperation")+"\r\n"+err.Error())
+	// Send JSON URL QR (filename: subjson.png) when available
+	if subJsonURL != "" {
+		if png, err := createQR(subJsonURL, 320); err == nil {
+			document := tu.Document(
+				tu.ID(chatId),
+				tu.FileFromBytes(png, "subjson.png"),
+			)
+			_, _ = bot.SendDocument(context.Background(), document)
+		} else {
+			t.SendMsgToTgbot(chatId, t.I18nBot("tgbot.answers.errorOperation")+"\r\n"+err.Error())
+		}
 	}
 
 	// Also generate a few individual links' QRs (first up to 5)

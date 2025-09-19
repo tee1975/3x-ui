@@ -4,7 +4,8 @@ import (
 	"encoding/base64"
 	"fmt"
 	"strings"
-	"x-ui/config"
+
+	"github.com/mhsanaei/3x-ui/config"
 
 	"github.com/gin-gonic/gin"
 )
@@ -13,6 +14,7 @@ type SUBController struct {
 	subTitle       string
 	subPath        string
 	subJsonPath    string
+	jsonEnabled    bool
 	subEncrypt     bool
 	updateInterval string
 
@@ -24,6 +26,7 @@ func NewSUBController(
 	g *gin.RouterGroup,
 	subPath string,
 	jsonPath string,
+	jsonEnabled bool,
 	encrypt bool,
 	showInfo bool,
 	rModel string,
@@ -39,6 +42,7 @@ func NewSUBController(
 		subTitle:       subTitle,
 		subPath:        subPath,
 		subJsonPath:    jsonPath,
+		jsonEnabled:    jsonEnabled,
 		subEncrypt:     encrypt,
 		updateInterval: update,
 
@@ -51,10 +55,11 @@ func NewSUBController(
 
 func (a *SUBController) initRouter(g *gin.RouterGroup) {
 	gLink := g.Group(a.subPath)
-	gJson := g.Group(a.subJsonPath)
-
 	gLink.GET(":subid", a.subs)
-	gJson.GET(":subid", a.subJsons)
+	if a.jsonEnabled {
+		gJson := g.Group(a.subJsonPath)
+		gJson.GET(":subid", a.subJsons)
+	}
 }
 
 func (a *SUBController) subs(c *gin.Context) {
@@ -74,8 +79,11 @@ func (a *SUBController) subs(c *gin.Context) {
 		if strings.Contains(strings.ToLower(accept), "text/html") || c.Query("html") == "1" || strings.EqualFold(c.Query("view"), "html") {
 			// Build page data in service
 			subURL, subJsonURL := a.subService.BuildURLs(scheme, hostWithPort, a.subPath, a.subJsonPath, subId)
+			if !a.jsonEnabled {
+				subJsonURL = ""
+			}
 			page := a.subService.BuildPageData(subId, hostHeader, traffic, lastOnline, subs, subURL, subJsonURL)
-			c.HTML(200, "subscription.html", gin.H{
+			c.HTML(200, "subpage.html", gin.H{
 				"title":        "subscription.title",
 				"cur_ver":      config.GetVersion(),
 				"host":         page.Host,
