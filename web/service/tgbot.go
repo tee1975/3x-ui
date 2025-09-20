@@ -18,14 +18,14 @@ import (
 	"strings"
 	"time"
 
-	"github.com/mhsanaei/3x-ui/config"
-	"github.com/mhsanaei/3x-ui/database"
-	"github.com/mhsanaei/3x-ui/database/model"
-	"github.com/mhsanaei/3x-ui/logger"
-	"github.com/mhsanaei/3x-ui/util/common"
-	"github.com/mhsanaei/3x-ui/web/global"
-	"github.com/mhsanaei/3x-ui/web/locale"
-	"github.com/mhsanaei/3x-ui/xray"
+	"github.com/mhsanaei/3x-ui/v2/config"
+	"github.com/mhsanaei/3x-ui/v2/database"
+	"github.com/mhsanaei/3x-ui/v2/database/model"
+	"github.com/mhsanaei/3x-ui/v2/logger"
+	"github.com/mhsanaei/3x-ui/v2/util/common"
+	"github.com/mhsanaei/3x-ui/v2/web/global"
+	"github.com/mhsanaei/3x-ui/v2/web/locale"
+	"github.com/mhsanaei/3x-ui/v2/xray"
 
 	"github.com/google/uuid"
 	"github.com/mymmrac/telego"
@@ -856,7 +856,7 @@ func (t *Tgbot) answerCallback(callbackQuery *telego.CallbackQuery, isAdmin bool
 				if len(dataArray) == 3 {
 					days, err := strconv.Atoi(dataArray[2])
 					if err == nil {
-						var date int64 = 0
+						var date int64
 						if days > 0 {
 							traffic, err := t.inboundService.GetClientTrafficByEmail(email)
 							if err != nil {
@@ -960,7 +960,7 @@ func (t *Tgbot) answerCallback(callbackQuery *telego.CallbackQuery, isAdmin bool
 			case "add_client_reset_exp_c":
 				client_ExpiryTime = 0
 				days, _ := strconv.Atoi(dataArray[1])
-				var date int64 = 0
+				var date int64
 				if client_ExpiryTime > 0 {
 					if client_ExpiryTime-time.Now().Unix()*1000 < 0 {
 						date = -int64(days * 24 * 60 * 60000)
