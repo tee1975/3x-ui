@@ -209,7 +209,7 @@ install_x-ui() {
     config_after_install
 
     if [[ $release == "alpine" ]]; then
-        wget -O /etc/init.d/x-ui https://raw.githubusercontent.com/MHSanaei/3x-ui/main/x-ui.rc
+        wget -O /etc/init.d/x-ui https://raw.githubusercontent.com/tee1975/3x-ui/main/x-ui.rc
         chmod +x /etc/init.d/x-ui
         rc-update add x-ui
         rc-service x-ui start
