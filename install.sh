@@ -59,29 +59,29 @@ is_domain() {
 install_base() {
     case "${release}" in
         ubuntu | debian | armbian)
-            apt-get update && apt-get install -y -q wget curl tar tzdata openssl socat
+            apt-get update && apt-get install -y -q curl tar tzdata openssl socat
         ;;
         fedora | amzn | virtuozzo | rhel | almalinux | rocky | ol)
-            dnf -y update && dnf install -y -q wget curl tar tzdata openssl socat
+            dnf -y update && dnf install -y -q curl tar tzdata openssl socat
         ;;
         centos)
             if [[ "${VERSION_ID}" =~ ^7 ]]; then
-                yum -y update && yum install -y wget curl tar tzdata openssl socat
+                yum -y update && yum install -y curl tar tzdata openssl socat
             else
-                dnf -y update && dnf install -y -q wget curl tar tzdata openssl socat
+                dnf -y update && dnf install -y -q curl tar tzdata openssl socat
             fi
         ;;
         arch | manjaro | parch)
-            pacman -Syu && pacman -Syu --noconfirm wget curl tar tzdata openssl socat
+            pacman -Syu && pacman -Syu --noconfirm curl tar tzdata openssl socat
         ;;
         opensuse-tumbleweed | opensuse-leap)
-            zypper refresh && zypper -q install -y wget curl tar timezone openssl socat
+            zypper refresh && zypper -q install -y curl tar timezone openssl socat
         ;;
         alpine)
-            apk update && apk add wget curl tar tzdata openssl socat
+            apk update && apk add curl tar tzdata openssl socat
         ;;
         *)
-            apt-get update && apt-get install -y -q wget curl tar tzdata openssl socat
+            apt-get update && apt-get install -y -q curl tar tzdata openssl socat
         ;;
     esac
 }
@@ -587,7 +587,7 @@ install_x-ui() {
             fi
         fi
         echo -e "Got x-ui latest version: ${tag_version}, beginning the installation..."
-        wget --inet4-only -N -O ${xui_folder}-linux-$(arch).tar.gz https://github.com/tee1975/3x-ui/releases/download/${tag_version}/x-ui-linux-$(arch).tar.gz
+        curl -4fLRo ${xui_folder}-linux-$(arch).tar.gz -z ${xui_folder}-linux-$(arch).tar.gz https://github.com/MHSanaei/3x-ui/releases/download/${tag_version}/x-ui-linux-$(arch).tar.gz
         if [[ $? -ne 0 ]]; then
             echo -e "${red}Downloading x-ui failed, please be sure that your server can access GitHub ${plain}"
             exit 1
@@ -604,13 +604,13 @@ install_x-ui() {
         
         url="https://github.com/tee1975/3x-ui/releases/download/${tag_version}/x-ui-linux-$(arch).tar.gz"
         echo -e "Beginning to install x-ui $1"
-        wget --inet4-only -N -O ${xui_folder}-linux-$(arch).tar.gz ${url}
+        curl -4fLRo ${xui_folder}-linux-$(arch).tar.gz -z ${xui_folder}-linux-$(arch).tar.gz ${url}
         if [[ $? -ne 0 ]]; then
             echo -e "${red}Download x-ui $1 failed, please check if the version exists ${plain}"
             exit 1
         fi
     fi
-    wget --inet4-only -O /usr/bin/x-ui-temp https://raw.githubusercontent.com/tee1975/3x-ui/main/x-ui.sh
+    curl -4fLRo /usr/bin/x-ui-temp https://raw.githubusercontent.com/MHSanaei/3x-ui/main/x-ui.sh
     if [[ $? -ne 0 ]]; then
         echo -e "${red}Failed to download x-ui.sh${plain}"
         exit 1
@@ -662,7 +662,7 @@ install_x-ui() {
     fi
     
     if [[ $release == "alpine" ]]; then
-        wget --inet4-only -O /etc/init.d/x-ui https://raw.githubusercontent.com/tee1975/3x-ui/main/x-ui.rc
+        curl -4fLRo /etc/init.d/x-ui https://raw.githubusercontent.com/MHSanaei/3x-ui/main/x-ui.rc
         if [[ $? -ne 0 ]]; then
             echo -e "${red}Failed to download x-ui.rc${plain}"
             exit 1
@@ -671,21 +671,70 @@ install_x-ui() {
         rc-update add x-ui
         rc-service x-ui start
     else
+        # Install systemd service file
+        service_installed=false
+        
         if [ -f "x-ui.service" ]; then
-            cp -f x-ui.service ${xui_service}/
-        else
+            echo -e "${green}Found x-ui.service in extracted files, installing...${plain}"
+            cp -f x-ui.service ${xui_service}/ >/dev/null 2>&1
+            if [[ $? -eq 0 ]]; then
+                service_installed=true
+            fi
+        fi
+        
+        if [ "$service_installed" = false ]; then
             case "${release}" in
                 ubuntu | debian | armbian)
-                    cp -f x-ui.service.debian ${xui_service}/x-ui.service
+                    if [ -f "x-ui.service.debian" ]; then
+                        echo -e "${green}Found x-ui.service.debian in extracted files, installing...${plain}"
+                        cp -f x-ui.service.debian ${xui_service}/x-ui.service >/dev/null 2>&1
+                        if [[ $? -eq 0 ]]; then
+                            service_installed=true
+                        fi
+                    fi
                 ;;
                 *)
-                    cp -f x-ui.service.rhel ${xui_service}/x-ui.service
+                    if [ -f "x-ui.service.rhel" ]; then
+                        echo -e "${green}Found x-ui.service.rhel in extracted files, installing...${plain}"
+                        cp -f x-ui.service.rhel ${xui_service}/x-ui.service >/dev/null 2>&1
+                        if [[ $? -eq 0 ]]; then
+                            service_installed=true
+                        fi
+                    fi
                 ;;
             esac
         fi
-        systemctl daemon-reload
-        systemctl enable x-ui
-        systemctl start x-ui
+        
+        # If service file not found in tar.gz, download from GitHub
+        if [ "$service_installed" = false ]; then
+            echo -e "${yellow}Service files not found in tar.gz, downloading from GitHub...${plain}"
+            case "${release}" in
+                ubuntu | debian | armbian)
+                    curl -4fLRo ${xui_service}/x-ui.service https://raw.githubusercontent.com/MHSanaei/3x-ui/main/x-ui.service.debian >/dev/null 2>&1
+                ;;
+                *)
+                    curl -4fLRo ${xui_service}/x-ui.service https://raw.githubusercontent.com/MHSanaei/3x-ui/main/x-ui.service.rhel >/dev/null 2>&1
+                ;;
+            esac
+            
+            if [[ $? -ne 0 ]]; then
+                echo -e "${red}Failed to install x-ui.service from GitHub${plain}"
+                exit 1
+            fi
+            service_installed=true
+        fi
+        
+        if [ "$service_installed" = true ]; then
+            echo -e "${green}Setting up systemd unit...${plain}"
+            chown root:root ${xui_service}/x-ui.service >/dev/null 2>&1
+            chmod 644 ${xui_service}/x-ui.service >/dev/null 2>&1
+            systemctl daemon-reload
+            systemctl enable x-ui
+            systemctl start x-ui
+        else
+            echo -e "${red}Failed to install x-ui.service file${plain}"
+            exit 1
+        fi
     fi
     
     echo -e "${green}x-ui ${tag_version}${plain} installation finished, it is running now..."
