@@ -7,7 +7,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/mhsanaei/3x-ui/v2/logger"
+	"github.com/mhsanaei/3x-ui/v3/logger"
 )
 
 // MessageType identifies the kind of WebSocket message.
@@ -18,6 +18,7 @@ const (
 	MessageTypeTraffic      MessageType = "traffic"
 	MessageTypeInbounds     MessageType = "inbounds"
 	MessageTypeOutbounds    MessageType = "outbounds"
+	MessageTypeNodes        MessageType = "nodes"
 	MessageTypeNotification MessageType = "notification"
 	MessageTypeXrayState    MessageType = "xray_state"
 	// MessageTypeClientStats carries absolute traffic counters for the clients
