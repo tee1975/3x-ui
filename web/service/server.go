@@ -7,7 +7,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/fs"
 	"mime/multipart"
 	"net/http"
 	"os"
@@ -660,7 +659,7 @@ func (s *ServerService) UpdateXray(version string) error {
 		defer zipFile.Close()
 		os.MkdirAll(filepath.Dir(fileName), 0755)
 		os.Remove(fileName)
-		file, err := os.OpenFile(fileName, os.O_CREATE|os.O_RDWR|os.O_TRUNC, fs.ModePerm)
+		file, err := os.OpenFile(fileName, os.O_CREATE|os.O_RDWR|os.O_TRUNC, 0755)
 		if err != nil {
 			return err
 		}
@@ -977,12 +976,18 @@ func (s *ServerService) ImportDB(file multipart.File) error {
 		return common.NewErrorf("Invalid or corrupt db file: %v", err)
 	}
 
-	// Stop Xray (ignore error but log)
+	xrayStopped := true
+	defer func() {
+		if xrayStopped {
+			if errR := s.RestartXrayService(); errR != nil {
+				logger.Warningf("Failed to restart Xray after DB import error: %v", errR)
+			}
+		}
+	}()
 	if errStop := s.StopXrayService(); errStop != nil {
 		logger.Warningf("Failed to stop Xray before DB import: %v", errStop)
 	}
 
-	// Close existing DB to release file locks (especially on Windows)
 	if errClose := database.CloseDB(); errClose != nil {
 		logger.Warningf("Failed to close existing DB before replacement: %v", errClose)
 	}
@@ -1030,7 +1035,7 @@ func (s *ServerService) ImportDB(file multipart.File) error {
 
 	s.inboundService.MigrateDB()
 
-	// Start Xray
+	xrayStopped = false
 	if err = s.RestartXrayService(); err != nil {
 		return common.NewErrorf("Imported DB but failed to start Xray: %v", err)
 	}

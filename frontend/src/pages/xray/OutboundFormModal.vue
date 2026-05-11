@@ -34,7 +34,6 @@ const props = defineProps({
   open: { type: Boolean, default: false },
   outbound: { type: Object, default: null },
   existingTags: { type: Array, default: () => [] },
-  inboundTags: { type: Array, default: () => [] },
 });
 
 const emit = defineEmits(['update:open', 'confirm']);
@@ -318,10 +317,8 @@ function regenerateWgKeys() {
           <!-- ============== Loopback ============== -->
           <template v-if="isLoopback">
             <a-form-item label="Inbound tag">
-              <a-auto-complete v-model:value="outbound.settings.inboundTag"
-                :options="inboundTags.map((tag) => ({ value: tag }))"
-                :filter-option="(input, option) => option.value.toLowerCase().includes(input.toLowerCase())"
-                placeholder="tag of an existing inbound to re-route into" />
+              <a-input v-model:value="outbound.settings.inboundTag"
+                placeholder="inbound tag using in routing rules" />
             </a-form-item>
           </template>
 
@@ -343,8 +340,7 @@ function regenerateWgKeys() {
               <a-input-number v-model:value="outbound.settings.userLevel" :min="0" :style="{ width: '100%' }" />
             </a-form-item>
             <a-form-item label="Rules">
-              <a-button size="small" type="primary"
-                @click="outbound.settings.rules.push(new Outbound.DNSRule())">
+              <a-button size="small" type="primary" @click="outbound.settings.rules.push(new Outbound.DNSRule())">
                 <template #icon>
                   <PlusOutlined />
                 </template>
@@ -955,11 +951,8 @@ function regenerateWgKeys() {
         <!-- Gated by canEnableStream() so TCP masks don't leak into
              Freedom / Blackhole / DNS / Socks / HTTP / Wireguard outbounds
              (they don't have a stream config at all). Matches legacy. -->
-        <FinalMaskForm
-          v-if="outbound.stream && outbound.canEnableStream()"
-          :stream="outbound.stream"
-          :protocol="proto"
-        />
+        <FinalMaskForm v-if="outbound.stream && outbound.canEnableStream()" :stream="outbound.stream"
+          :protocol="proto" />
       </a-tab-pane>
 
       <!-- ============================== JSON ============================== -->

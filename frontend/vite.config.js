@@ -57,7 +57,7 @@ function refreshBasePath() {
 }
 
 // `apply: 'serve'` keeps the injection out of `vite build` — dist.go
-// already injects __X_UI_BASE_PATH__ at runtime in production.
+// already injects webBasePath at runtime in production.
 function injectBasePathPlugin() {
   return {
     name: 'xui-inject-base-path',
@@ -65,7 +65,7 @@ function injectBasePathPlugin() {
     transformIndexHtml(html) {
       const basePath = refreshBasePath();
       const escaped = basePath.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
-      const tag = `<script>window.__X_UI_BASE_PATH__="${escaped}";</script>`;
+      const tag = `<script>window.X_UI_BASE_PATH="${escaped}";</script>`;
       return html.replace('</head>', `${tag}</head>`);
     },
   };
@@ -163,7 +163,6 @@ export default defineConfig({
             || id.includes('/node_modules/@vue/')
           ) return 'vendor-vue';
           if (id.includes('dayjs')) return 'vendor-dayjs';
-          if (id.includes('qrious')) return 'vendor-qrious';
           if (id.includes('axios')) return 'vendor-axios';
           if (
             id.includes('vue3-persian-datetime-picker')

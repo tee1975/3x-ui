@@ -1,5 +1,5 @@
 <script setup>
-import { computed } from 'vue';
+import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import {
   EditOutlined,
@@ -31,6 +31,7 @@ const props = defineProps({
   onlineClients: { type: Array, default: () => [] },
   lastOnlineMap: { type: Object, default: () => ({}) },
   isDarkTheme: { type: Boolean, default: false },
+  pageSize: { type: Number, default: 0 },
 });
 
 const emit = defineEmits([
@@ -39,11 +40,26 @@ const emit = defineEmits([
   'info-client',
   'reset-traffic-client',
   'delete-client',
+  'delete-clients',
   'toggle-enable-client',
 ]);
 
 const inbound = computed(() => props.dbInbound.toInbound());
 const clients = computed(() => inbound.value?.clients || []);
+
+const currentPage = ref(1);
+const paginatedClients = computed(() => {
+  if (!props.pageSize || props.pageSize <= 0) return clients.value;
+  const start = (currentPage.value - 1) * props.pageSize;
+  return clients.value.slice(start, start + props.pageSize);
+});
+
+watch([clients, () => props.pageSize], () => {
+  const total = clients.value.length;
+  const size = props.pageSize > 0 ? props.pageSize : (total || 1);
+  const maxPage = Math.max(1, Math.ceil(total / size));
+  if (currentPage.value > maxPage) currentPage.value = maxPage;
+});
 
 // === Per-client stats lookup =======================================
 const statsMap = computed(() => {
@@ -162,23 +178,95 @@ function confirmDelete(client) {
 function rowKey(client) {
   return client.email || client.id || client.password || JSON.stringify(client);
 }
+
+const selected = ref(new Set());
+
+const allSelected = computed(() =>
+  clients.value.length > 0 && clients.value.every((c) => selected.value.has(rowKey(c))),
+);
+const someSelected = computed(() =>
+  clients.value.some((c) => selected.value.has(rowKey(c))),
+);
+const selectedCount = computed(() => selected.value.size);
+
+function isSelected(key) {
+  return selected.value.has(key);
+}
+function toggleSelect(key, next) {
+  const s = new Set(selected.value);
+  if (next) s.add(key); else s.delete(key);
+  selected.value = s;
+}
+function selectAll(next) {
+  if (next) {
+    selected.value = new Set(clients.value.map(rowKey));
+  } else {
+    selected.value = new Set();
+  }
+}
+function clearSelection() {
+  selected.value = new Set();
+}
+
+watch(clients, (list) => {
+  if (selected.value.size === 0) return;
+  const valid = new Set(list.map(rowKey));
+  const next = new Set();
+  for (const k of selected.value) if (valid.has(k)) next.add(k);
+  if (next.size !== selected.value.size) selected.value = next;
+});
+
+function confirmBulkDelete() {
+  const picked = clients.value.filter((c) => selected.value.has(rowKey(c)));
+  if (picked.length === 0) return;
+  Modal.confirm({
+    title: t('pages.inbounds.deleteClient') + ` — ${picked.length}`,
+    content: t('pages.inbounds.deleteClientContent'),
+    okText: t('delete'),
+    okType: 'danger',
+    cancelText: t('cancel'),
+    onOk: () => {
+      emit('delete-clients', { dbInbound: props.dbInbound, clients: picked });
+      clearSelection();
+    },
+  });
+}
 </script>
 
 <template>
-  <div class="client-list" :class="{ 'is-mobile': isMobile, 'is-dark': isDarkTheme }">
+  <div class="client-list"
+    :class="{ 'is-mobile': isMobile, 'is-dark': isDarkTheme, 'has-select': isRemovable }">
+    <div v-if="isRemovable && selectedCount > 0" class="bulk-bar">
+      <span class="bulk-count">{{ selectedCount }} selected</span>
+      <a-button size="small" type="link" @click="clearSelection">{{ t('cancel') }}</a-button>
+      <a-button size="small" danger @click="confirmBulkDelete">
+        <DeleteOutlined /> {{ t('delete') }}
+      </a-button>
+    </div>
+
     <!-- ====================== Desktop: grid table ===================== -->
     <template v-if="!isMobile">
       <div class="client-row client-list-header">
+        <div v-if="isRemovable" class="cell cell-select">
+          <a-checkbox :checked="allSelected" :indeterminate="someSelected && !allSelected"
+            @change="(e) => selectAll(e.target.checked)" />
+        </div>
         <div class="cell cell-actions">{{ t('pages.settings.actions') }}</div>
         <div class="cell cell-enable">{{ t('enable') }}</div>
         <div class="cell cell-online">{{ t('online') }}</div>
         <div class="cell cell-client">{{ t('pages.inbounds.client') }}</div>
         <div class="cell cell-traffic">{{ t('pages.inbounds.traffic') }}</div>
+        <div class="cell cell-remained">{{ t('remained') }}</div>
         <div class="cell cell-alltime">{{ t('pages.inbounds.allTimeTraffic') }}</div>
         <div class="cell cell-expiry">{{ t('pages.inbounds.expireDate') }}</div>
       </div>
 
-      <div v-for="client in clients" :key="rowKey(client)" class="client-row">
+      <div v-for="client in paginatedClients" :key="rowKey(client)" class="client-row"
+        :class="{ 'is-selected': isSelected(rowKey(client)) }">
+        <div v-if="isRemovable" class="cell cell-select">
+          <a-checkbox :checked="isSelected(rowKey(client))"
+            @change="(e) => toggleSelect(rowKey(client), e.target.checked)" />
+        </div>
         <div class="cell cell-actions">
           <a-tooltip v-if="dbInbound.hasLink()" :title="t('qrCode')">
             <QrcodeOutlined class="row-icon" @click="emit('qrcode-client', { dbInbound, client })" />
@@ -262,6 +350,15 @@ function rowKey(client) {
           </a-popover>
         </div>
 
+        <div class="cell cell-remained">
+          <a-tag v-if="isUnlimitedTotal(client)" color="purple" :style="{ border: 'none' }" class="infinite-tag">
+            <InfinityIcon />
+          </a-tag>
+          <a-tag v-else :color="isClientDepleted(client.email) ? 'red' : ''">
+            {{ SizeFormatter.sizeFormat(getRem(client.email)) }}
+          </a-tag>
+        </div>
+
         <div class="cell cell-alltime">
           <a-tag>{{ SizeFormatter.sizeFormat(getAllTime(client.email)) }}</a-tag>
         </div>
@@ -291,8 +388,8 @@ function rowKey(client) {
               {{ IntlUtil.formatRelativeTime(client.expiryTime) }}
             </a-tag>
           </a-popover>
-          <a-tag v-else :color="ColorUtils.userExpiryColor(expireDiff, client, isDarkTheme)"
-            :style="{ border: 'none' }" class="infinite-tag">
+          <a-tag v-else :color="ColorUtils.userExpiryColor(expireDiff, client, isDarkTheme)" :style="{ border: 'none' }"
+            class="infinite-tag">
             <InfinityIcon />
           </a-tag>
         </div>
@@ -301,8 +398,11 @@ function rowKey(client) {
 
     <!-- ====================== Mobile: card list ======================= -->
     <template v-else>
-      <div v-for="client in clients" :key="rowKey(client)" class="client-card">
+      <div v-for="client in paginatedClients" :key="rowKey(client)" class="client-card"
+        :class="{ 'is-selected': isSelected(rowKey(client)) }">
         <div class="client-card-head">
+          <a-checkbox v-if="isRemovable" :checked="isSelected(rowKey(client))"
+            @change="(e) => toggleSelect(rowKey(client), e.target.checked)" />
           <a-tooltip>
             <template #title>
               <template v-if="isClientDepleted(client.email)">{{ t('depleted') }}</template>
@@ -357,6 +457,15 @@ function rowKey(client) {
             </a-tag>
           </div>
           <div class="stat-row">
+            <span class="stat-label">{{ t('remained') }}</span>
+            <a-tag v-if="isUnlimitedTotal(client)" color="purple" :style="{ border: 'none' }" class="infinite-tag">
+              <InfinityIcon />
+            </a-tag>
+            <a-tag v-else :color="isClientDepleted(client.email) ? 'red' : ''">
+              {{ SizeFormatter.sizeFormat(getRem(client.email)) }}
+            </a-tag>
+          </div>
+          <div class="stat-row">
             <span class="stat-label">{{ t('pages.inbounds.allTimeTraffic') }}</span>
             <a-tag>{{ SizeFormatter.sizeFormat(getAllTime(client.email)) }}</a-tag>
           </div>
@@ -373,11 +482,17 @@ function rowKey(client) {
             <a-tag v-else-if="client.expiryTime < 0" color="green">
               {{ -client.expiryTime / 86400000 }}d ({{ t('pages.client.delayedStart') }})
             </a-tag>
-            <a-tag v-else color="purple"><InfinityIcon /></a-tag>
+            <a-tag v-else color="purple">
+              <InfinityIcon />
+            </a-tag>
           </div>
         </div>
       </div>
     </template>
+
+    <a-pagination v-if="pageSize > 0 && clients.length > pageSize" v-model:current="currentPage"
+      :page-size="pageSize" :total="clients.length" :show-size-changer="false" size="small"
+      class="client-list-pagination" />
   </div>
 </template>
 
@@ -387,8 +502,28 @@ function rowKey(client) {
   font-size: 13px;
 }
 
+.bulk-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 6px 16px;
+  background: rgba(22, 119, 255, 0.08);
+  border-bottom: 1px solid rgba(22, 119, 255, 0.18);
+}
+
+.bulk-count {
+  font-weight: 500;
+  font-size: 13px;
+}
+
+.is-selected {
+  background: rgba(22, 119, 255, 0.06);
+}
+
 .client-row {
   display: grid;
+  /* Default — no select column (single-client inbounds). The .has-select
+   * modifier below prepends the 40px checkbox column. */
   grid-template-columns:
     140px
     /* actions */
@@ -402,12 +537,36 @@ function rowKey(client) {
     /* traffic */
     130px
     /* all-time */
+    130px
+    /* remained */
     140px;
   /* expiry */
   gap: 12px;
   align-items: center;
   padding: 8px 16px;
   border-top: 1px solid rgba(128, 128, 128, 0.12);
+}
+
+.client-list.has-select .client-row {
+  grid-template-columns:
+    40px
+    /* select */
+    140px
+    /* actions */
+    60px
+    /* enable */
+    80px
+    /* online */
+    minmax(160px, 2fr)
+    /* client identity */
+    minmax(160px, 2fr)
+    /* traffic */
+    130px
+    /* all-time */
+    130px
+    /* remained */
+    140px;
+  /* expiry */
 }
 
 .client-row:last-child {
@@ -430,10 +589,12 @@ function rowKey(client) {
   /* allow grid children to shrink instead of overflowing */
 }
 
+.cell-select,
 .cell-actions,
 .cell-enable,
 .cell-online,
-.cell-alltime {
+.cell-alltime,
+.cell-remained {
   text-align: center;
   display: inline-flex;
   align-items: center;
@@ -545,6 +706,12 @@ function rowKey(client) {
   padding: 0 !important;
 }
 
+.client-list-pagination {
+  display: flex;
+  justify-content: center;
+  padding: 10px 16px 4px;
+}
+
 /* ===== Mobile card list =========================================== */
 .client-list.is-mobile {
   display: flex;
@@ -561,6 +728,7 @@ function rowKey(client) {
   flex-direction: column;
   gap: 6px;
 }
+
 :global(body.dark) .client-card {
   border-color: rgba(255, 255, 255, 0.1);
 }
@@ -571,6 +739,7 @@ function rowKey(client) {
   gap: 8px;
   min-width: 0;
 }
+
 .client-card-head .client-email {
   flex: 1;
   min-width: 0;
@@ -580,6 +749,7 @@ function rowKey(client) {
   overflow: hidden;
   text-overflow: ellipsis;
 }
+
 .client-card-actions {
   margin-left: auto;
   display: flex;
@@ -587,6 +757,7 @@ function rowKey(client) {
   gap: 8px;
   flex-shrink: 0;
 }
+
 .client-card-actions .row-icon {
   font-size: 20px;
   padding: 4px;
@@ -605,12 +776,14 @@ function rowKey(client) {
   flex-direction: column;
   gap: 4px;
 }
+
 .client-card-foot .stat-row {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
   gap: 6px;
 }
+
 .client-card-foot .stat-label {
   font-size: 10px;
   text-transform: uppercase;
@@ -619,6 +792,7 @@ function rowKey(client) {
   min-width: 96px;
   flex-shrink: 0;
 }
+
 .client-card-foot :deep(.ant-tag) {
   margin: 0;
 }
