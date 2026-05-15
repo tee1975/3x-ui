@@ -827,8 +827,8 @@ TlsStreamSettings.Cert = class extends XrayCommonClass {
         } else {
             return new TlsStreamSettings.Cert(
                 false, '', '',
-                json.certificate.join('\n'),
-                json.key.join('\n'),
+                Array.isArray(json.certificate) ? json.certificate.join('\n') : (json.certificate ?? ''),
+                Array.isArray(json.key) ? json.key.join('\n') : (json.key ?? ''),
                 json.oneTimeLoading,
                 json.usage,
                 json.buildChain,
@@ -1593,6 +1593,10 @@ export class Inbound extends XrayCommonClass {
                     extra[k] = xhttp[k];
                 }
             });
+        }
+
+        if (typeof xhttp.mode === 'string' && xhttp.mode.length > 0) {
+            extra.mode = xhttp.mode;
         }
 
         const stringFields = [
@@ -2408,20 +2412,25 @@ export class Inbound extends XrayCommonClass {
     }
 
     toJson() {
-        let streamSettings;
-        if (this.canEnableStream() || this.stream?.sockopt) {
-            streamSettings = this.stream.toJson();
-        }
-        return {
+        // Only these protocols use streamSettings
+        const streamProtocols = [Protocols.VLESS, Protocols.VMESS, Protocols.TROJAN, Protocols.SHADOWSOCKS, Protocols.HYSTERIA];
+
+        const result = {
             port: this.port,
             listen: this.listen,
             protocol: this.protocol,
             settings: this.settings instanceof XrayCommonClass ? this.settings.toJson() : this.settings,
-            streamSettings: streamSettings,
             tag: this.tag,
             sniffing: this.sniffing.toJson(),
             clientStats: this.clientStats
         };
+
+        // Only add streamSettings if protocol supports it
+        if (streamProtocols.includes(this.protocol)) {
+            result.streamSettings = this.stream.toJson();
+        }
+
+        return result;
     }
 }
 
