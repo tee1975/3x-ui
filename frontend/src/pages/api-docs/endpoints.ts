@@ -176,6 +176,15 @@ export const sections: readonly Section[] = [
       },
       {
         method: 'POST',
+        path: '/panel/api/inbounds/:id/delAllClients',
+        summary: 'Remove every client attached to a single inbound while keeping the inbound itself. Collects emails from settings.clients[] and feeds them into the optimized bulk-delete path (runtime user removal + traffic-row cleanup + SyncInbound). Destructive and cannot be undone.',
+        params: [
+          { name: 'id', in: 'path', type: 'number', desc: 'Inbound ID.' },
+        ],
+        response: '{\n  "success": true,\n  "obj": {\n    "deleted": 12\n  }\n}',
+      },
+      {
+        method: 'POST',
         path: '/panel/api/inbounds/resetAllTraffics',
         summary: 'Reset upload + download counters on every inbound. Destructive — accounting history is lost.',
       },
@@ -534,6 +543,67 @@ export const sections: readonly Section[] = [
         summary: 'Create many clients in one call. Body is a JSON array of {client, inboundIds} payloads — the same shape /add accepts. Items are processed sequentially; per-email skip reasons are returned for items that fail (e.g., duplicate email). Triggers a single Xray restart at the end if any inbound was running.',
         body: '[\n  {\n    "client": {\n      "email": "alice@example.com",\n      "totalGB": 53687091200,\n      "expiryTime": 0,\n      "enable": true\n    },\n    "inboundIds": [7]\n  },\n  {\n    "client": {\n      "email": "bob@example.com",\n      "totalGB": 53687091200,\n      "expiryTime": 0,\n      "enable": true\n    },\n    "inboundIds": [7, 9]\n  }\n]',
         response: '{\n  "success": true,\n  "obj": {\n    "created": 2,\n    "skipped": [\n      { "email": "alice@example.com", "reason": "email already in use" }\n    ]\n  }\n}',
+      },
+      {
+        method: 'POST',
+        path: '/panel/api/clients/bulkAssignGroup',
+        summary: 'Assign the given group label to many clients in one call. Updates clients.group_name and patches the matching client entry inside every owning inbound\'s settings JSON in a single transaction. Pass an empty group to clear the label. If the group name does not yet exist (in client_groups or as a derived label), it is auto-created as a persistent group.',
+        body: '{\n  "emails": ["alice", "bob"],\n  "group": "customer-a"\n}',
+        response: '{\n  "success": true,\n  "obj": {\n    "affected": 2\n  }\n}',
+      },
+      {
+        method: 'POST',
+        path: '/panel/api/clients/bulkAttach',
+        summary: 'Attach many existing clients to many inbounds in one call. Each client keeps its identity (email/UUID/password/subId) and a shared traffic row; all clients are added to a target inbound in a single AddInboundClient call. Clients already present on a target are reported under skipped. Returns per-email attached/skipped/errors lists and triggers a single Xray restart if any target inbound was running.',
+        params: [
+          { name: 'emails', in: 'body (json)', type: 'array', desc: 'Emails of existing clients to attach.' },
+          { name: 'inboundIds', in: 'body (json)', type: 'integer[]', desc: 'Target inbound IDs to attach every client to.' },
+        ],
+        body: '{\n  "emails": ["alice", "bob"],\n  "inboundIds": [7, 9]\n}',
+        response: '{\n  "success": true,\n  "obj": {\n    "attached": ["alice", "bob"],\n    "skipped": ["bob"],\n    "errors": []\n  }\n}',
+      },
+      {
+        method: 'POST',
+        path: '/panel/api/clients/bulkResetTraffic',
+        summary: 'Zero up/down counters for many clients in one call. Loops the single-reset path so each client is re-enabled across its attached inbounds and pushed to Xray/remote nodes. Returns the count of successfully reset clients.',
+        body: '{\n  "emails": ["alice", "bob"]\n}',
+        response: '{\n  "success": true,\n  "obj": {\n    "affected": 2\n  }\n}',
+      },
+      {
+        method: 'GET',
+        path: '/panel/api/clients/groups',
+        summary: 'List all client groups with their member counts. Merges persisted groups (rows in client_groups, including empty placeholders) with the distinct group_name values currently set on clients. Sorted alphabetically (case-insensitive).',
+        response: '{\n  "success": true,\n  "obj": [\n    { "name": "customer-a", "clientCount": 5 },\n    { "name": "internal", "clientCount": 0 }\n  ]\n}',
+      },
+      {
+        method: 'GET',
+        path: '/panel/api/clients/groups/:name/emails',
+        summary: 'Return just the email list of clients that currently belong to the given group. Useful for fanning a single bulk action over an entire group without round-tripping the full client list.',
+        params: [
+          { name: 'name', in: 'path', type: 'string', desc: 'Group name (URL-encoded).' },
+        ],
+        response: '{\n  "success": true,\n  "obj": ["alice", "bob", "carol"]\n}',
+      },
+      {
+        method: 'POST',
+        path: '/panel/api/clients/groups/create',
+        summary: 'Create a new empty (placeholder) group. The group becomes selectable in client forms and the filter drawer even before any client is assigned to it. Errors if a group with the same name already exists.',
+        body: '{\n  "name": "customer-a"\n}',
+        response: '{\n  "success": true,\n  "obj": {\n    "name": "customer-a"\n  }\n}',
+      },
+      {
+        method: 'POST',
+        path: '/panel/api/clients/groups/rename',
+        summary: 'Rename a group. The new name is applied to the client_groups row AND propagated to every matching client (both clients.group_name and the client entry inside every owning inbound\'s settings JSON) in a single transaction. Returns the number of clients whose label was updated.',
+        body: '{\n  "oldName": "customer-a",\n  "newName": "tier-1"\n}',
+        response: '{\n  "success": true,\n  "obj": {\n    "affected": 5\n  }\n}',
+      },
+      {
+        method: 'POST',
+        path: '/panel/api/clients/groups/delete',
+        summary: 'Remove a group. Deletes the client_groups row and clears the group label from every matching client (both clients.group_name and the inbound settings JSON). The clients themselves are NOT deleted — use /bulkDel after filtering by group for that. Returns the count of clients whose label was cleared.',
+        body: '{\n  "name": "customer-a"\n}',
+        response: '{\n  "success": true,\n  "obj": {\n    "affected": 5\n  }\n}',
       },
       {
         method: 'POST',

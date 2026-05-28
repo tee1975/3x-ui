@@ -38,6 +38,8 @@ import LazyMount from '@/components/LazyMount';
 const InboundFormModal = lazy(() => import('./InboundFormModal'));
 const InboundInfoModal = lazy(() => import('./InboundInfoModal'));
 const QrCodeModal = lazy(() => import('./QrCodeModal'));
+const AttachClientsModal = lazy(() => import('./AttachClientsModal'));
+const AssignClientsGroupModal = lazy(() => import('./AssignClientsGroupModal'));
 
 type RowAction =
   | 'edit'
@@ -48,6 +50,9 @@ type RowAction =
   | 'clipboard'
   | 'delete'
   | 'resetTraffic'
+  | 'delAllClients'
+  | 'attachClients'
+  | 'assignGroup'
   | 'clone';
 
 type GeneralAction = 'import' | 'export' | 'subs' | 'resetInbounds';
@@ -119,6 +124,12 @@ export default function InboundsPage() {
 
   const [qrOpen, setQrOpen] = useState(false);
   const [qrDbInbound, setQrDbInbound] = useState<DBInbound | null>(null);
+
+  const [attachOpen, setAttachOpen] = useState(false);
+  const [attachSource, setAttachSource] = useState<DBInbound | null>(null);
+
+  const [groupOpen, setGroupOpen] = useState(false);
+  const [groupSource, setGroupSource] = useState<DBInbound | null>(null);
 
   const [textOpen, setTextOpen] = useState(false);
   const [textTitle, setTextTitle] = useState('');
@@ -355,6 +366,21 @@ export default function InboundsPage() {
     });
   }, [modal, refresh, t]);
 
+  const confirmDelAllClients = useCallback((dbInbound: DBInbound) => {
+    const count = clientCount[dbInbound.id]?.clients || 0;
+    modal.confirm({
+      title: t('pages.inbounds.delAllClientsConfirmTitle', { remark: dbInbound.remark, count }),
+      content: t('pages.inbounds.delAllClientsConfirmContent'),
+      okText: t('delete'),
+      okType: 'danger',
+      cancelText: t('cancel'),
+      onOk: async () => {
+        const msg = await HttpUtil.post(`/panel/api/inbounds/${dbInbound.id}/delAllClients`);
+        if (msg?.success) await refresh();
+      },
+    });
+  }, [modal, refresh, t, clientCount]);
+
   const confirmClone = useCallback((dbInbound: DBInbound) => {
     modal.confirm({
       title: t('pages.inbounds.cloneConfirmTitle', { remark: dbInbound.remark }),
@@ -422,7 +448,7 @@ export default function InboundsPage() {
     // Actions that touch per-client secrets (uuid, password, flow, ...) need
     // the full payload that the slim list view does not ship. Hydrate first
     // and then operate on the rehydrated record.
-    const hydratingKeys: RowAction[] = ['edit', 'showInfo', 'qrcode', 'export', 'subs', 'clipboard', 'clone'];
+    const hydratingKeys: RowAction[] = ['edit', 'showInfo', 'qrcode', 'export', 'subs', 'clipboard', 'clone', 'attachClients', 'assignGroup'];
     let target = dbInbound;
     if (hydratingKeys.includes(key)) {
       const hydrated = await hydrateInbound(dbInbound.id);
@@ -456,13 +482,24 @@ export default function InboundsPage() {
       case 'resetTraffic':
         confirmResetTraffic(target);
         break;
+      case 'delAllClients':
+        confirmDelAllClients(target);
+        break;
+      case 'attachClients':
+        setAttachSource(target);
+        setAttachOpen(true);
+        break;
+      case 'assignGroup':
+        setGroupSource(target);
+        setGroupOpen(true);
+        break;
       case 'clone':
         confirmClone(target);
         break;
       default:
         messageApi.info(`Action "${key}" — coming in a later 5f subphase`);
     }
-  }, [hydrateInbound, openEdit, checkFallback, findClientIndex, exportInboundLinks, exportInboundSubs, exportInboundClipboard, confirmDelete, confirmResetTraffic, confirmClone, messageApi]);
+  }, [hydrateInbound, openEdit, checkFallback, findClientIndex, exportInboundLinks, exportInboundSubs, exportInboundClipboard, confirmDelete, confirmResetTraffic, confirmDelAllClients, confirmClone, messageApi]);
 
   return (
     <ConfigProvider theme={antdThemeConfig}>
@@ -566,6 +603,23 @@ export default function InboundsPage() {
             remarkModel={remarkModel}
             nodeAddress={qrNodeAddress}
             subSettings={subSettings}
+          />
+        </LazyMount>
+        <LazyMount when={attachOpen}>
+          <AttachClientsModal
+            open={attachOpen}
+            onClose={() => setAttachOpen(false)}
+            onAttached={refresh}
+            source={attachSource}
+            dbInbounds={dbInbounds}
+          />
+        </LazyMount>
+        <LazyMount when={groupOpen}>
+          <AssignClientsGroupModal
+            open={groupOpen}
+            onClose={() => setGroupOpen(false)}
+            onAssigned={refresh}
+            source={groupSource}
           />
         </LazyMount>
 

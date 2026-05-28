@@ -42,11 +42,20 @@ export interface ClientQueryParams {
   page: number;
   pageSize: number;
   search?: string;
+  // CSV strings — frontend joins arrays on ',', backend splits the same way.
   filter?: string;
   protocol?: string;
-  inbound?: number;
+  inbound?: string;
   sort?: string;
   order?: 'ascend' | 'descend';
+  expiryFrom?: number;
+  expiryTo?: number;
+  usageFrom?: number;
+  usageTo?: number;
+  autoRenew?: 'on' | 'off' | '';
+  hasTgId?: 'yes' | 'no' | '';
+  hasComment?: 'yes' | 'no' | '';
+  group?: string;
 }
 
 const DEFAULT_QUERY: ClientQueryParams = { page: 1, pageSize: 25 };
@@ -61,9 +70,17 @@ function buildQS(p: ClientQueryParams): string {
   if (p.search) sp.set('search', p.search);
   if (p.filter) sp.set('filter', p.filter);
   if (p.protocol) sp.set('protocol', p.protocol);
-  if (p.inbound && p.inbound > 0) sp.set('inbound', String(p.inbound));
+  if (p.inbound) sp.set('inbound', p.inbound);
   if (p.sort) sp.set('sort', p.sort);
   if (p.order) sp.set('order', p.order);
+  if (p.expiryFrom && p.expiryFrom > 0) sp.set('expiryFrom', String(p.expiryFrom));
+  if (p.expiryTo && p.expiryTo > 0) sp.set('expiryTo', String(p.expiryTo));
+  if (p.usageFrom && p.usageFrom > 0) sp.set('usageFrom', String(p.usageFrom));
+  if (p.usageTo && p.usageTo > 0) sp.set('usageTo', String(p.usageTo));
+  if (p.autoRenew) sp.set('autoRenew', p.autoRenew);
+  if (p.hasTgId) sp.set('hasTgId', p.hasTgId);
+  if (p.hasComment) sp.set('hasComment', p.hasComment);
+  if (p.group) sp.set('group', p.group);
   return sp.toString();
 }
 
@@ -105,9 +122,17 @@ export function useClients() {
         && (prev.search ?? '') === (next.search ?? '')
         && (prev.filter ?? '') === (next.filter ?? '')
         && (prev.protocol ?? '') === (next.protocol ?? '')
-        && (prev.inbound ?? 0) === (next.inbound ?? 0)
+        && (prev.inbound ?? '') === (next.inbound ?? '')
         && (prev.sort ?? '') === (next.sort ?? '')
         && (prev.order ?? '') === (next.order ?? '')
+        && (prev.expiryFrom ?? 0) === (next.expiryFrom ?? 0)
+        && (prev.expiryTo ?? 0) === (next.expiryTo ?? 0)
+        && (prev.usageFrom ?? 0) === (next.usageFrom ?? 0)
+        && (prev.usageTo ?? 0) === (next.usageTo ?? 0)
+        && (prev.autoRenew ?? '') === (next.autoRenew ?? '')
+        && (prev.hasTgId ?? '') === (next.hasTgId ?? '')
+        && (prev.hasComment ?? '') === (next.hasComment ?? '')
+        && (prev.group ?? '') === (next.group ?? '')
       ) return prev;
       return next;
     });
@@ -147,6 +172,7 @@ export function useClients() {
   const total = listQuery.data?.total ?? 0;
   const filtered = listQuery.data?.filtered ?? 0;
   const summary = listQuery.data?.summary ?? DEFAULT_SUMMARY;
+  const allGroups = listQuery.data?.groups ?? [];
   const fetched = listQuery.data !== undefined;
   const loading = listQuery.isFetching;
 
@@ -205,6 +231,12 @@ export function useClients() {
   const createMut = useMutation({
     mutationFn: (payload: unknown) =>
       HttpUtil.post('/panel/api/clients/add', payload, JSON_HEADERS),
+    onSuccess: (msg) => { if (msg?.success) invalidateAll(); },
+  });
+
+  const bulkAssignGroupMut = useMutation({
+    mutationFn: (body: { emails: string[]; group: string }) =>
+      HttpUtil.post('/panel/api/clients/bulkAssignGroup', body, JSON_HEADERS),
     onSuccess: (msg) => { if (msg?.success) invalidateAll(); },
   });
 
@@ -300,6 +332,10 @@ export function useClients() {
     if (!Array.isArray(emails) || emails.length === 0) return Promise.resolve(null);
     return bulkAdjustMut.mutateAsync({ emails, addDays, addBytes });
   }, [bulkAdjustMut]);
+  const bulkAssignGroup = useCallback((emails: string[], group: string) => {
+    if (!Array.isArray(emails) || emails.length === 0) return Promise.resolve(null);
+    return bulkAssignGroupMut.mutateAsync({ emails, group });
+  }, [bulkAssignGroupMut]);
   const attach = useCallback((email: string, inboundIds: number[]) => {
     if (!email) return Promise.resolve(null as unknown as Msg<unknown>);
     return attachMut.mutateAsync({ email, inboundIds });
@@ -385,6 +421,7 @@ export function useClients() {
     total,
     filtered,
     summary,
+    allGroups,
     hydrate,
     query,
     setQuery,
@@ -405,6 +442,7 @@ export function useClients() {
     remove,
     bulkDelete,
     bulkAdjust,
+    bulkAssignGroup,
     attach,
     detach,
     resetTraffic,

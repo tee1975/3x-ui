@@ -28,6 +28,9 @@ import {
   BlockOutlined,
   DeleteOutlined,
   InfoCircleOutlined,
+  TagsOutlined,
+  UsergroupAddOutlined,
+  UsergroupDeleteOutlined,
 } from '@ant-design/icons';
 
 import { HttpUtil, SizeFormatter, IntlUtil, ColorUtils } from '@/utils';
@@ -53,11 +56,61 @@ function readStreamHints(streamSettings: unknown): StreamHints {
   };
 }
 
-function readSettings(settings: unknown): { method?: string } {
-  return coerceInboundJsonField(settings) as { method?: string };
+// Display label for a network value. All known transports render in
+// upper-case for visual consistency with the TCP/UDP/TLS/Reality tags
+// already shown alongside; compound names (`httpupgrade`, `splithttp`,
+// `xhttp`) get a tiny touch of casing so they don't read as one word.
+function networkLabel(network: string): string {
+  const n = (network || '').toLowerCase();
+  if (!n) return 'TCP';
+  switch (n) {
+    case 'httpupgrade': return 'HTTPUpgrade';
+    case 'splithttp': return 'SplitHTTP';
+    case 'xhttp': return 'XHTTP';
+  }
+  return n.toUpperCase();
 }
 
-function isInboundMultiUser(record: { protocol: string; settings: unknown }): boolean {
+// Returns the underlying L4 protocol for transports whose name isn't
+// already TCP/UDP. `kcp` and `quic` both ride on UDP; everything else
+// (`ws`, `grpc`, `http`, `httpupgrade`, `xhttp`) is TCP-based and gets
+// no extra tag (the transport name implies TCP).
+function networkL4(network: string): 'UDP' | '' {
+  const n = (network || '').toLowerCase();
+  if (n === 'kcp' || n === 'quic') return 'UDP';
+  return '';
+}
+
+// Shadowsocks settings.network ("tcp" / "udp" / "tcp,udp") and Tunnel
+// settings.allowedNetwork (same shape, different field name) both carry
+// the L4 transport list independent of streamSettings. Returns a
+// comma-separated label.
+function commaNetworkLabel(raw: string): string {
+  const parts = (raw || 'tcp').toLowerCase().split(',').map((p) => p.trim()).filter(Boolean);
+  if (parts.length === 0) return 'TCP';
+  return parts.map(networkLabel).join(',');
+}
+
+function shadowsocksNetworkLabel(settings: unknown): string {
+  return commaNetworkLabel(readSettings(settings).network || '');
+}
+
+function tunnelNetworkLabel(settings: unknown): string {
+  return commaNetworkLabel(readSettings(settings).allowedNetwork || '');
+}
+
+// Mixed (socks+http combo) is always TCP at L4; settings.udp=true adds
+// UDP-associate support on the same port (SOCKS5 UDP).
+function mixedNetworkLabel(settings: unknown): string {
+  const st = coerceInboundJsonField(settings) as { udp?: boolean };
+  return st.udp ? 'TCP,UDP' : 'TCP';
+}
+
+function readSettings(settings: unknown): { method?: string; network?: string; allowedNetwork?: string } {
+  return coerceInboundJsonField(settings) as { method?: string; network?: string; allowedNetwork?: string };
+}
+
+export function isInboundMultiUser(record: { protocol: string; settings: unknown }): boolean {
   switch (record.protocol) {
     case 'vmess':
     case 'vless':
@@ -80,6 +133,7 @@ type ProtocolFlags = {
   isMixed?: boolean;
   isHTTP?: boolean;
   isWireguard?: boolean;
+  isTunnel?: boolean;
 };
 
 interface DBInboundRecord extends ProtocolFlags {
@@ -116,6 +170,7 @@ export type RowAction =
   | 'clipboard'
   | 'delete'
   | 'resetTraffic'
+  | 'delAllClients'
   | 'clone';
 
 export type GeneralAction = 'import' | 'export' | 'subs' | 'resetInbounds';
@@ -177,11 +232,12 @@ function showQrCodeMenu(dbInbound: DBInboundRecord): boolean {
 interface RowActionsMenuProps {
   record: DBInboundRecord;
   subEnable: boolean;
+  hasClients: boolean;
   onClick: (key: RowAction) => void;
   isMobile?: boolean;
 }
 
-function buildRowActionsMenu({ record, subEnable, t, isMobile }: { record: DBInboundRecord; subEnable: boolean; t: (k: string) => string; isMobile?: boolean }): MenuProps['items'] {
+function buildRowActionsMenu({ record, subEnable, t, isMobile, hasClients }: { record: DBInboundRecord; subEnable: boolean; t: (k: string) => string; isMobile?: boolean; hasClients?: boolean }): MenuProps['items'] {
   const items: MenuProps['items'] = [];
   if (isMobile) {
     items.push({ key: 'edit', icon: <EditOutlined />, label: t('edit') });
@@ -204,11 +260,16 @@ function buildRowActionsMenu({ record, subEnable, t, isMobile }: { record: DBInb
   items.push({ key: 'clipboard', icon: <CopyOutlined />, label: t('pages.inbounds.exportInbound') });
   items.push({ key: 'resetTraffic', icon: <RetweetOutlined />, label: t('pages.inbounds.resetTraffic') });
   items.push({ key: 'clone', icon: <BlockOutlined />, label: t('pages.inbounds.clone') });
+  if (isInboundMultiUser(record) && hasClients) {
+    items.push({ key: 'attachClients', icon: <UsergroupAddOutlined />, label: t('pages.inbounds.attachClients') });
+    items.push({ key: 'assignGroup', icon: <TagsOutlined />, label: t('pages.inbounds.assignClientsGroup') });
+    items.push({ key: 'delAllClients', icon: <UsergroupDeleteOutlined />, danger: true, label: t('pages.inbounds.delAllClients') });
+  }
   items.push({ key: 'delete', icon: <DeleteOutlined />, danger: true, label: t('delete') });
   return items;
 }
 
-function RowActionsCell({ record, subEnable, onClick }: RowActionsMenuProps) {
+function RowActionsCell({ record, subEnable, hasClients, onClick }: RowActionsMenuProps) {
   const { t } = useTranslation();
   return (
     <div className="action-buttons">
@@ -216,7 +277,7 @@ function RowActionsCell({ record, subEnable, onClick }: RowActionsMenuProps) {
       <Dropdown
         trigger={['click']}
         menu={{
-          items: buildRowActionsMenu({ record, subEnable, t }),
+          items: buildRowActionsMenu({ record, subEnable, t, hasClients }),
           onClick: ({ key }) => onClick(key as RowAction),
         }}
       >
@@ -299,6 +360,7 @@ export default function InboundList({
           <RowActionsCell
             record={record}
             subEnable={subEnable}
+            hasClients={(clientCount[record.id]?.clients || 0) > 0}
             onClick={(key) => onRowAction({ key, dbInbound: record })}
           />
         ),
@@ -368,13 +430,21 @@ export default function InboundList({
         ...sorterFor('protocol'),
         render: (_, record) => {
           const tags: ReactElement[] = [<Tag key="p" color="purple">{record.protocol}</Tag>];
-          if (record.isVMess || record.isVLess || record.isTrojan || record.isSS || record.isHysteria) {
+          if (record.isWireguard || record.isHysteria) {
+            tags.push(<Tag key="n" color="green">UDP</Tag>);
+          } else if (record.isSS) {
             const stream = readStreamHints(record.streamSettings);
-            tags.push(
-              <Tag key="n" color="green">
-                {record.isHysteria ? 'UDP' : stream.network}
-              </Tag>,
-            );
+            tags.push(<Tag key="n" color="green">{shadowsocksNetworkLabel(record.settings)}</Tag>);
+            if (stream.isTls) tags.push(<Tag key="tls" color="blue">TLS</Tag>);
+          } else if (record.isTunnel) {
+            tags.push(<Tag key="n" color="green">{tunnelNetworkLabel(record.settings)}</Tag>);
+          } else if (record.isMixed) {
+            tags.push(<Tag key="n" color="green">{mixedNetworkLabel(record.settings)}</Tag>);
+          } else if (record.isVMess || record.isVLess || record.isTrojan) {
+            const stream = readStreamHints(record.streamSettings);
+            tags.push(<Tag key="n" color="green">{networkLabel(stream.network)}</Tag>);
+            const l4 = networkL4(stream.network);
+            if (l4) tags.push(<Tag key="l4" color="green">{l4}</Tag>);
             if (stream.isTls) tags.push(<Tag key="tls" color="blue">TLS</Tag>);
             if (stream.isReality) tags.push(<Tag key="reality" color="blue">Reality</Tag>);
           }
@@ -541,7 +611,10 @@ export default function InboundList({
         {isMobile ? (
           <div className="inbound-cards">
             {sortedInbounds.length === 0 ? (
-              <div className="card-empty">—</div>
+              <div className="card-empty">
+                <ImportOutlined style={{ fontSize: 28, opacity: 0.5 }} />
+                <div>{t('noData')}</div>
+              </div>
             ) : (
               sortedInbounds.map((record) => (
                 <div key={record.id} className="inbound-card">
@@ -561,7 +634,7 @@ export default function InboundList({
                         trigger={['click']}
                         placement="bottomRight"
                         menu={{
-                          items: buildRowActionsMenu({ record, subEnable, t, isMobile: true }),
+                          items: buildRowActionsMenu({ record, subEnable, t, isMobile: true, hasClients: (clientCount[record.id]?.clients || 0) > 0 }),
                           onClick: ({ key }) => onRowAction({ key: key as RowAction, dbInbound: record }),
                         }}
                       >
@@ -582,6 +655,14 @@ export default function InboundList({
             scroll={{ x: 1000 }}
             style={{ marginTop: 10 }}
             size="small"
+            locale={{
+              emptyText: (
+                <div className="card-empty">
+                  <ImportOutlined style={{ fontSize: 32, marginBottom: 8 }} />
+                  <div>{t('noData')}</div>
+                </div>
+              ),
+            }}
             onChange={(_p, _f, sorter) => {
               const single = Array.isArray(sorter) ? sorter[0] : sorter;
               const colKey = (single?.columnKey || single?.field) as SortKey | undefined;
@@ -606,13 +687,31 @@ export default function InboundList({
             <div className="stat-row">
               <span className="stat-label">{t('pages.inbounds.protocol')}</span>
               <Tag color="purple">{statsRecord.protocol}</Tag>
-              {(statsRecord.isVMess || statsRecord.isVLess || statsRecord.isTrojan || statsRecord.isSS || statsRecord.isHysteria) && (() => {
+              {(statsRecord.isWireguard || statsRecord.isHysteria) && (
+                <Tag color="green">UDP</Tag>
+              )}
+              {statsRecord.isSS && (() => {
                 const stream = readStreamHints(statsRecord.streamSettings);
                 return (
                   <>
-                    <Tag color="green">
-                      {statsRecord.isHysteria ? 'UDP' : stream.network}
-                    </Tag>
+                    <Tag color="green">{shadowsocksNetworkLabel(statsRecord.settings)}</Tag>
+                    {stream.isTls && <Tag color="blue">TLS</Tag>}
+                  </>
+                );
+              })()}
+              {statsRecord.isTunnel && (
+                <Tag color="green">{tunnelNetworkLabel(statsRecord.settings)}</Tag>
+              )}
+              {statsRecord.isMixed && (
+                <Tag color="green">{mixedNetworkLabel(statsRecord.settings)}</Tag>
+              )}
+              {(statsRecord.isVMess || statsRecord.isVLess || statsRecord.isTrojan) && (() => {
+                const stream = readStreamHints(statsRecord.streamSettings);
+                const l4 = networkL4(stream.network);
+                return (
+                  <>
+                    <Tag color="green">{networkLabel(stream.network)}</Tag>
+                    {l4 && <Tag color="green">{l4}</Tag>}
                     {stream.isTls && <Tag color="blue">TLS</Tag>}
                     {stream.isReality && <Tag color="blue">Reality</Tag>}
                   </>
