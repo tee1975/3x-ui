@@ -199,12 +199,12 @@ export const sections: readonly Section[] = [
       {
         method: 'GET',
         path: '/panel/api/inbounds/:id/fallbacks',
-        summary: 'List the fallback rules attached to a master VLESS/Trojan TCP-TLS inbound. Each rule links one child inbound (the dest) to optional SNI/ALPN/path/xver match criteria.',
+        summary: 'List the fallback rules attached to a master VLESS/Trojan TCP-TLS inbound. Each rule links one child inbound (the dest) to optional SNI/ALPN/path/dest/xver match criteria. When dest is empty the child inbound\'s listen+port is used.',
         params: [
           { name: 'id', in: 'path', type: 'number', desc: 'Master inbound ID.' },
         ],
         response:
-          '{\n  "success": true,\n  "obj": [\n    {\n      "id": 1,\n      "masterId": 10,\n      "childId": 11,\n      "name": "",\n      "alpn": "",\n      "path": "/vlws",\n      "xver": 2,\n      "sortOrder": 0\n    }\n  ]\n}',
+          '{\n  "success": true,\n  "obj": [\n    {\n      "id": 1,\n      "masterId": 10,\n      "childId": 11,\n      "name": "",\n      "alpn": "",\n      "path": "/vlws",\n      "dest": "",\n      "xver": 2,\n      "sortOrder": 0\n    }\n  ]\n}',
       },
       {
         method: 'POST',
@@ -212,9 +212,9 @@ export const sections: readonly Section[] = [
         summary: 'Replace the entire fallback list for a master inbound. Body is JSON. Triggers an Xray restart.',
         params: [
           { name: 'id', in: 'path', type: 'number', desc: 'Master inbound ID.' },
-          { name: 'fallbacks', in: 'body (json)', type: 'object[]', desc: 'Array of {childId, name, alpn, path, xver, sortOrder} entries.' },
+          { name: 'fallbacks', in: 'body (json)', type: 'object[]', desc: 'Array of {childId, name, alpn, path, dest, xver, sortOrder} entries. Leave dest empty to auto-resolve from the child inbound\'s listen+port; set it (e.g. "8443", "127.0.0.1:8443", "/dev/shm/x.sock") to override.' },
         ],
-        body: '{\n  "fallbacks": [\n    { "childId": 11, "path": "/vlws", "xver": 2 },\n    { "childId": 12, "alpn": "h2" }\n  ]\n}',
+        body: '{\n  "fallbacks": [\n    { "childId": 11, "path": "/vlws", "xver": 2 },\n    { "childId": 12, "alpn": "h2", "dest": "8443" }\n  ]\n}',
         response: '{\n  "success": true,\n  "msg": "Inbound updated"\n}',
       },
     ],
@@ -546,9 +546,16 @@ export const sections: readonly Section[] = [
       },
       {
         method: 'POST',
-        path: '/panel/api/clients/bulkAssignGroup',
-        summary: 'Assign the given group label to many clients in one call. Updates clients.group_name and patches the matching client entry inside every owning inbound\'s settings JSON in a single transaction. Pass an empty group to clear the label. If the group name does not yet exist (in client_groups or as a derived label), it is auto-created as a persistent group.',
+        path: '/panel/api/clients/groups/bulkAdd',
+        summary: 'Add many clients to a group in one call. Updates clients.group_name and patches the matching client entry inside every owning inbound\'s settings JSON in a single transaction. If the group name does not yet exist (in client_groups or as a derived label), it is auto-created as a persistent group. To clear the group label, use /groups/bulkRemove instead.',
         body: '{\n  "emails": ["alice", "bob"],\n  "group": "customer-a"\n}',
+        response: '{\n  "success": true,\n  "obj": {\n    "affected": 2\n  }\n}',
+      },
+      {
+        method: 'POST',
+        path: '/panel/api/clients/groups/bulkRemove',
+        summary: 'Clear the group label on many clients in one call. Inverse of /groups/bulkAdd. Clients themselves are kept — only the group label is cleared from clients.group_name and from each owning inbound\'s settings JSON. Groups become empty if all their members are removed.',
+        body: '{\n  "emails": ["alice", "bob"]\n}',
         response: '{\n  "success": true,\n  "obj": {\n    "affected": 2\n  }\n}',
       },
       {
@@ -561,6 +568,17 @@ export const sections: readonly Section[] = [
         ],
         body: '{\n  "emails": ["alice", "bob"],\n  "inboundIds": [7, 9]\n}',
         response: '{\n  "success": true,\n  "obj": {\n    "attached": ["alice", "bob"],\n    "skipped": ["bob"],\n    "errors": []\n  }\n}',
+      },
+      {
+        method: 'POST',
+        path: '/panel/api/clients/bulkDetach',
+        summary: 'Mirror of bulkAttach: detach many existing clients from many inbounds in one call. For each email, intersects the client\'s current inbounds with the requested set and detaches from those only; (email, inbound) pairs where the client is not currently attached are silently no-ops. Emails not attached to any of the requested inbounds are reported under skipped. Client records are kept even if they become orphaned — use bulkDel for full removal. Returns per-email detached/skipped/errors lists and triggers a single Xray restart if any target inbound was running.',
+        params: [
+          { name: 'emails', in: 'body (json)', type: 'array', desc: 'Emails of existing clients to detach.' },
+          { name: 'inboundIds', in: 'body (json)', type: 'integer[]', desc: 'Inbound IDs to detach the clients from.' },
+        ],
+        body: '{\n  "emails": ["alice", "bob"],\n  "inboundIds": [7, 9]\n}',
+        response: '{\n  "success": true,\n  "obj": {\n    "detached": ["alice", "bob"],\n    "skipped": [],\n    "errors": []\n  }\n}',
       },
       {
         method: 'POST',
@@ -587,7 +605,7 @@ export const sections: readonly Section[] = [
       {
         method: 'POST',
         path: '/panel/api/clients/groups/create',
-        summary: 'Create a new empty (placeholder) group. The group becomes selectable in client forms and the filter drawer even before any client is assigned to it. Errors if a group with the same name already exists.',
+        summary: 'Create a new empty (placeholder) group. The group becomes selectable in client forms and the filter drawer even before any client is added to it. Errors if a group with the same name already exists.',
         body: '{\n  "name": "customer-a"\n}',
         response: '{\n  "success": true,\n  "obj": {\n    "name": "customer-a"\n  }\n}',
       },

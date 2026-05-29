@@ -42,6 +42,7 @@ import {
   TagsOutlined,
   TeamOutlined,
   UsergroupAddOutlined,
+  UsergroupDeleteOutlined,
 } from '@ant-design/icons';
 
 import { useTheme } from '@/hooks/useTheme';
@@ -61,12 +62,53 @@ const ClientBulkAddModal = lazy(() => import('./ClientBulkAddModal'));
 const ClientBulkAdjustModal = lazy(() => import('./ClientBulkAdjustModal'));
 const FilterDrawer = lazy(() => import('./FilterDrawer'));
 const SubLinksModal = lazy(() => import('./SubLinksModal'));
-const BulkAssignGroupModal = lazy(() => import('./BulkAssignGroupModal'));
+const BulkAddToGroupModal = lazy(() => import('./BulkAddToGroupModal'));
+const BulkAttachInboundsModal = lazy(() => import('./BulkAttachInboundsModal'));
+const BulkDetachInboundsModal = lazy(() => import('./BulkDetachInboundsModal'));
 import { emptyFilters, activeFilterCount } from './filters';
 import type { ClientFilters } from './filters';
 import './ClientsPage.css';
 
 const FILTER_STATE_KEY = 'clientsFilterState';
+
+function UngroupIcon() {
+  return (
+    <span
+      style={{
+        position: 'relative',
+        display: 'inline-flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        width: '1em',
+        height: '1em',
+      }}
+    >
+      <TagsOutlined />
+      <span
+        aria-hidden="true"
+        style={{
+          position: 'absolute',
+          inset: 0,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          pointerEvents: 'none',
+        }}
+      >
+        <span
+          style={{
+            display: 'block',
+            width: '125%',
+            height: '1.5px',
+            background: 'currentColor',
+            transform: 'rotate(-45deg)',
+            borderRadius: '1px',
+          }}
+        />
+      </span>
+    </span>
+  );
+}
 
 type Bucket = 'active' | 'deactive' | 'depleted' | 'expiring';
 
@@ -149,7 +191,7 @@ export default function ClientsPage() {
     setQuery,
     inbounds, onlines, loading, fetched, subSettings,
     ipLimitEnable, tgBotEnable, expireDiff, trafficDiff, pageSize,
-    create, update, remove, bulkDelete, bulkAdjust, bulkAssignGroup, attach, detach,
+    create, update, remove, bulkDelete, bulkAdjust, bulkAddToGroup, bulkRemoveFromGroup, attach, bulkAttach, detach, bulkDetach,
     resetTraffic, resetAllTraffics, delDepleted, setEnable,
     applyTrafficEvent, applyClientStatsEvent,
     hydrate,
@@ -173,6 +215,8 @@ export default function ClientsPage() {
   const [bulkAdjustOpen, setBulkAdjustOpen] = useState(false);
   const [subLinksOpen, setSubLinksOpen] = useState(false);
   const [bulkGroupOpen, setBulkGroupOpen] = useState(false);
+  const [bulkAttachOpen, setBulkAttachOpen] = useState(false);
+  const [bulkDetachOpen, setBulkDetachOpen] = useState(false);
   const [selectedRowKeys, setSelectedRowKeys] = useState<string[]>([]);
 
   const initial = readFilterState();
@@ -456,6 +500,26 @@ export default function ClientsPage() {
     });
   }
 
+  function onBulkUngroup() {
+    const emails = [...selectedRowKeys];
+    if (emails.length === 0) return;
+    modal.confirm({
+      title: t('pages.clients.ungroupConfirmTitle', { count: emails.length }),
+      content: t('pages.clients.ungroupConfirmContent'),
+      okText: t('confirm'),
+      okType: 'danger',
+      cancelText: t('cancel'),
+      onOk: async () => {
+        const msg = await bulkRemoveFromGroup(emails);
+        if (msg?.success) {
+          setSelectedRowKeys([]);
+          const affected = (msg.obj as { affected?: number } | undefined)?.affected ?? emails.length;
+          messageApi.success(t('pages.clients.ungroupSuccessToast', { count: affected }));
+        }
+      },
+    });
+  }
+
   function onBulkDelete() {
     const emails = [...selectedRowKeys];
     if (emails.length === 0) return;
@@ -581,6 +645,7 @@ export default function ClientsPage() {
       title: t('pages.clients.group'),
       key: 'group',
       width: 130,
+      hidden: allGroups.length === 0,
       render: (_v, record) => {
         if (!record.group) return <span style={{ color: 'rgba(0,0,0,0.45)' }}>—</span>;
         const isActive = filters.groups.includes(record.group);
@@ -665,7 +730,7 @@ export default function ClientsPage() {
       ),
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  ], [t, togglingEmail, clientBucket, isOnline, inboundsById, filters]);
+  ], [t, togglingEmail, clientBucket, isOnline, inboundsById, filters, allGroups]);
 
   const tablePagination = {
     current: currentPage,
@@ -778,22 +843,31 @@ export default function ClientsPage() {
                       hoverable
                       title={
                         <div className="card-toolbar">
-                          <Button type="primary" icon={<PlusOutlined />} onClick={onAdd}>
-                            {!isMobile && t('pages.clients.addClients')}
-                          </Button>
-                          {selectedRowKeys.length > 0 && (
+                          {selectedRowKeys.length === 0 ? (
+                            <Button type="primary" icon={<PlusOutlined />} onClick={onAdd}>
+                              {!isMobile && t('pages.clients.addClients')}
+                            </Button>
+                          ) : (
                             <>
-                              <Button icon={<ClockCircleOutlined />} onClick={() => setBulkAdjustOpen(true)}>
-                                {t('pages.clients.adjustSelected', { count: selectedRowKeys.length })}
+                              <Tag
+                                color="blue"
+                                closable
+                                onClose={() => setSelectedRowKeys([])}
+                                style={{ marginInlineEnd: 0, padding: '4px 8px', fontSize: 13 }}
+                              >
+                                {t('pages.clients.selectedCount', { count: selectedRowKeys.length })}
+                              </Tag>
+                              <Button icon={<UsergroupAddOutlined />} onClick={() => setBulkAttachOpen(true)}>
+                                {!isMobile && t('pages.clients.attach')}
+                              </Button>
+                              <Button danger icon={<UsergroupDeleteOutlined />} onClick={() => setBulkDetachOpen(true)}>
+                                {!isMobile && t('pages.clients.detach')}
                               </Button>
                               <Button icon={<TagsOutlined />} onClick={() => setBulkGroupOpen(true)}>
-                                {t('pages.clients.assignGroupSelected', { count: selectedRowKeys.length })}
+                                {!isMobile && t('pages.clients.addToGroup')}
                               </Button>
-                              <Button icon={<LinkOutlined />} onClick={() => setSubLinksOpen(true)}>
-                                {t('pages.clients.subLinksSelected', { count: selectedRowKeys.length })}
-                              </Button>
-                              <Button danger icon={<DeleteOutlined />} onClick={onBulkDelete}>
-                                {t('pages.clients.deleteSelected', { count: selectedRowKeys.length })}
+                              <Button danger icon={<UngroupIcon />} onClick={onBulkUngroup}>
+                                {!isMobile && t('pages.clients.ungroup')}
                               </Button>
                             </>
                           )}
@@ -801,33 +875,58 @@ export default function ClientsPage() {
                             trigger={['click']}
                             placement="bottomRight"
                             menu={{
-                              items: [
-                                {
-                                  key: 'bulk',
-                                  icon: <UsergroupAddOutlined />,
-                                  label: t('pages.clients.bulk'),
-                                  onClick: () => setBulkAddOpen(true),
-                                },
-                                {
-                                  key: 'resetAll',
-                                  icon: <RetweetOutlined />,
-                                  label: t('pages.clients.resetAllTraffics'),
-                                  onClick: onResetAllTraffics,
-                                },
-                                {
-                                  key: 'delDepleted',
-                                  icon: <RestOutlined />,
-                                  label: t('pages.clients.delDepleted'),
-                                  danger: true,
-                                  onClick: onDelDepleted,
-                                },
-                              ],
+                              items: selectedRowKeys.length > 0
+                                ? [
+                                    {
+                                      key: 'adjust',
+                                      icon: <ClockCircleOutlined />,
+                                      label: t('pages.clients.adjust'),
+                                      onClick: () => setBulkAdjustOpen(true),
+                                    },
+                                    {
+                                      key: 'subLinks',
+                                      icon: <LinkOutlined />,
+                                      label: t('pages.clients.subLinks'),
+                                      onClick: () => setSubLinksOpen(true),
+                                    },
+                                  ]
+                                : [
+                                    {
+                                      key: 'bulk',
+                                      icon: <UsergroupAddOutlined />,
+                                      label: t('pages.clients.bulk'),
+                                      onClick: () => setBulkAddOpen(true),
+                                    },
+                                    {
+                                      key: 'resetAll',
+                                      icon: <RetweetOutlined />,
+                                      label: t('pages.clients.resetAllTraffics'),
+                                      onClick: onResetAllTraffics,
+                                    },
+                                    {
+                                      key: 'delDepleted',
+                                      icon: <RestOutlined />,
+                                      label: t('pages.clients.delDepleted'),
+                                      danger: true,
+                                      onClick: onDelDepleted,
+                                    },
+                                  ],
                             }}
                           >
                             <Button icon={<MoreOutlined />}>
                               {!isMobile && t('more')}
                             </Button>
                           </Dropdown>
+                          {selectedRowKeys.length > 0 && (
+                            <Button
+                              danger
+                              icon={<DeleteOutlined />}
+                              onClick={onBulkDelete}
+                              style={{ marginInlineStart: 'auto' }}
+                            >
+                              {!isMobile && t('delete')}
+                            </Button>
+                          )}
                         </div>
                       }
                     >
@@ -1142,16 +1241,48 @@ export default function ClientsPage() {
           />
         </LazyMount>
         <LazyMount when={bulkGroupOpen}>
-          <BulkAssignGroupModal
+          <BulkAddToGroupModal
             open={bulkGroupOpen}
             count={selectedRowKeys.length}
             groups={allGroups}
             onOpenChange={setBulkGroupOpen}
             onSubmit={async (group) => {
-              const msg = await bulkAssignGroup([...selectedRowKeys], group);
+              const msg = await bulkAddToGroup([...selectedRowKeys], group);
               if (msg?.success) {
                 setSelectedRowKeys([]);
                 return (msg.obj as { affected?: number } | undefined) ?? { affected: 0 };
+              }
+              return null;
+            }}
+          />
+        </LazyMount>
+        <LazyMount when={bulkAttachOpen}>
+          <BulkAttachInboundsModal
+            open={bulkAttachOpen}
+            count={selectedRowKeys.length}
+            inbounds={inbounds}
+            onOpenChange={setBulkAttachOpen}
+            onSubmit={async (inboundIds) => {
+              const msg = await bulkAttach([...selectedRowKeys], inboundIds);
+              if (msg?.success) {
+                setSelectedRowKeys([]);
+                return msg.obj ?? { attached: [], skipped: [], errors: [] };
+              }
+              return null;
+            }}
+          />
+        </LazyMount>
+        <LazyMount when={bulkDetachOpen}>
+          <BulkDetachInboundsModal
+            open={bulkDetachOpen}
+            count={selectedRowKeys.length}
+            inbounds={inbounds}
+            onOpenChange={setBulkDetachOpen}
+            onSubmit={async (inboundIds) => {
+              const msg = await bulkDetach([...selectedRowKeys], inboundIds);
+              if (msg?.success) {
+                setSelectedRowKeys([]);
+                return msg.obj ?? { detached: [], skipped: [], errors: [] };
               }
               return null;
             }}

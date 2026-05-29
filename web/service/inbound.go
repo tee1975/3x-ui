@@ -1074,7 +1074,7 @@ func (s *InboundService) generateRandomCredential(targetProtocol model.Protocol)
 	}
 }
 
-func (s *InboundService) buildTargetClientFromSource(source model.Client, targetProtocol model.Protocol, email string, flow string) (model.Client, error) {
+func (s *InboundService) buildTargetClientFromSource(source model.Client, targetInbound *model.Inbound, email string, flow string) (model.Client, error) {
 	nowTs := time.Now().UnixMilli()
 	target := source
 	target.Email = email
@@ -1086,12 +1086,14 @@ func (s *InboundService) buildTargetClientFromSource(source model.Client, target
 	target.Auth = ""
 	target.Flow = ""
 
+	targetProtocol := targetInbound.Protocol
 	switch targetProtocol {
 	case model.VMESS:
 		target.ID = s.generateRandomCredential(targetProtocol)
 	case model.VLESS:
 		target.ID = s.generateRandomCredential(targetProtocol)
-		if flow == "xtls-rprx-vision" || flow == "xtls-rprx-vision-udp443" {
+		if (flow == "xtls-rprx-vision" || flow == "xtls-rprx-vision-udp443") &&
+			inboundCanEnableTlsFlow(string(targetProtocol), targetInbound.StreamSettings) {
 			target.Flow = flow
 		}
 	case model.Trojan, model.Shadowsocks:
@@ -1192,7 +1194,7 @@ func (s *InboundService) CopyInboundClients(targetInboundID int, sourceInboundID
 		}
 
 		targetEmail := s.nextAvailableCopiedEmail(originalEmail, targetInboundID, occupiedEmails)
-		targetClient, buildErr := s.buildTargetClientFromSource(sourceClient, targetInbound.Protocol, targetEmail, flow)
+		targetClient, buildErr := s.buildTargetClientFromSource(sourceClient, targetInbound, targetEmail, flow)
 		if buildErr != nil {
 			result.Errors = append(result.Errors, fmt.Sprintf("%s: %v", originalEmail, buildErr))
 			continue
@@ -1432,6 +1434,9 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 			Delete(&xray.ClientTraffic{}).Error; err != nil {
 			return false, err
 		}
+		if err := s.clientService.DetachInbound(tx, c.Id); err != nil {
+			return false, err
+		}
 		if err := tx.Where("id = ?", c.Id).
 			Delete(&model.Inbound{}).Error; err != nil {
 			return false, err
@@ -1500,10 +1505,13 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 			}
 
 			if err := tx.Exec(
-				`UPDATE client_traffics
-				 SET up = ?, down = ?, enable = ?, total = ?, expiry_time = ?, reset = ?,
-				     last_online = MAX(last_online, ?)
-				 WHERE email = ?`,
+				fmt.Sprintf(
+					`UPDATE client_traffics
+					 SET up = ?, down = ?, enable = ?, total = ?, expiry_time = ?, reset = ?,
+					     last_online = %s
+					 WHERE email = ?`,
+					database.GreatestExpr("last_online", "?"),
+				),
 				cs.Up, cs.Down, cs.Enable, cs.Total, cs.ExpiryTime, cs.Reset,
 				cs.LastOnline, cs.Email,
 			).Error; err != nil {
@@ -2988,10 +2996,13 @@ func (s *InboundService) MigrationRequirements() {
 	for inbound_index := range inbounds {
 		settings := map[string]any{}
 		json.Unmarshal([]byte(inbounds[inbound_index].Settings), &settings)
+		if raw, exists := settings["clients"]; exists && raw == nil {
+			settings["clients"] = []any{}
+		}
 		clients, ok := settings["clients"].([]any)
 		if ok {
 			// Fix Client configuration problems
-			var newClients []any
+			newClients := make([]any, 0, len(clients))
 			hasVisionFlow := false
 			for client_index := range clients {
 				c := clients[client_index].(map[string]any)
