@@ -36,6 +36,7 @@ import type { ColumnsType } from 'antd/es/table';
 import { SizeFormatter } from '@/utils';
 import { OutboundProtocols as Protocols } from '@/schemas/primitives';
 import OutboundFormModal from './OutboundFormModal';
+import { isUdpOutbound } from '@/hooks/useXraySetting';
 import type { XraySettingsValue, SetTemplate, OutboundTestState, OutboundTrafficRow } from '@/hooks/useXraySetting';
 import './OutboundsTab.css';
 
@@ -361,7 +362,7 @@ export default function OutboundsTab({
         align: 'center',
         width: 80,
         render: (_v, record, index) => (
-          <Tooltip title={`${t('check')} (${testMode.toUpperCase()})`}>
+          <Tooltip title={`${t('check')} (${(isUdpOutbound(record) ? 'http' : testMode).toUpperCase()})`}>
             <Button
               type="primary"
               shape="circle"
@@ -375,7 +376,7 @@ export default function OutboundsTab({
       },
     ],
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [t, testMode, rows.length, outboundTestStates, outboundsTraffic],
+    [t, testMode, rows, outboundTestStates, outboundsTraffic],
   );
 
   return (
