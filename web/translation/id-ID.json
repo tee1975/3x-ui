@@ -246,7 +246,10 @@
       "importDatabaseError": "Terjadi kesalahan saat mengimpor database",
       "readDatabaseError": "Terjadi kesalahan saat membaca database",
       "getDatabaseError": "Terjadi kesalahan saat mengambil database",
-      "getConfigError": "Terjadi kesalahan saat mengambil file konfigurasi"
+      "getConfigError": "Terjadi kesalahan saat mengambil file konfigurasi",
+      "backupPostgresNote": "Panel ini berjalan di PostgreSQL. «Cadangkan» mengunduh arsip pg_dump (.dump) dan «Pulihkan» memuatnya kembali dengan pg_restore. Server memerlukan alat klien PostgreSQL (pg_dump dan pg_restore) terpasang.",
+      "exportDatabasePgDesc": "Klik untuk mengunduh dump PostgreSQL (.dump) dari basis data Anda saat ini ke perangkat Anda.",
+      "importDatabasePgDesc": "Klik untuk memilih dan mengunggah berkas .dump guna memulihkan basis data PostgreSQL Anda. Ini menggantikan semua data saat ini."
     },
     "inbounds": {
       "title": "Inbound",
@@ -317,6 +320,11 @@
       "attachClientsSearchPlaceholder": "Cari email atau komentar",
       "attachClientsStatusDisabled": "Dinonaktifkan",
       "attachClientsSelectedCount": "{selected} dari {total} dipilih",
+      "attachExistingClients": "Lampirkan klien yang ada…",
+      "attachExistingTitle": "Lampirkan klien yang ada ke «{remark}»",
+      "attachExistingDesc": "Melampirkan klien yang ada ({count} tersedia) ke inbound ini — UUID/kata sandi sama dan trafik bersama. Klien yang sudah ada di sini dilewati.",
+      "attachExistingNoClients": "Belum ada klien. Buat klien dulu, lalu lampirkan di sini.",
+      "attachExistingStatusAttached": "Sudah dilampirkan",
       "detachClients": "Lepas klien",
       "detachClientsTitle": "Lepas klien dari «{remark}»",
       "detachClientsDesc": "Menghapus klien terpilih hanya dari inbound ini. Catatan klien tetap dipertahankan (gunakan Delete untuk menghapus sepenuhnya). Sumber memiliki total {count} klien.",
@@ -439,7 +447,10 @@
         "trafficGetError": "Gagal mendapatkan data lalu lintas",
         "getNewX25519CertError": "Terjadi kesalahan saat mendapatkan sertifikat X25519.",
         "getNewmldsa65Error": "Terjadi kesalahan saat mendapatkan sertifikat mldsa65.",
-        "getNewVlessEncError": "Terjadi kesalahan saat mendapatkan sertifikat VlessEnc."
+        "getNewVlessEncError": "Terjadi kesalahan saat mendapatkan sertifikat VlessEnc.",
+        "invalidClientField": "Klien {client}: kolom {field} — {reason}",
+        "invalidField": "{field} — {reason}",
+        "moreIssues": "{message}  (+{count} lainnya)"
       },
       "form": {
         "moveUp": "Naik",
@@ -826,6 +837,12 @@
       "panelVersion": "Versi panel",
       "actions": "Aksi",
       "probe": "Probe Sekarang",
+      "updatePanel": "Perbarui Panel",
+      "updateSelected": "Perbarui Terpilih ({count})",
+      "updateAvailable": "Pembaruan tersedia",
+      "upToDate": "Terbaru",
+      "updateConfirmTitle": "Perbarui {count} node ke versi terbaru?",
+      "updateConfirmContent": "Setiap node terpilih mengunduh rilis terbaru dan memulai ulang. Hanya node aktif dan online yang diperbarui.",
       "testConnection": "Tes Koneksi",
       "connectionOk": "Koneksi OK ({ms} ms)",
       "connectionFailed": "Koneksi gagal",
@@ -847,7 +864,10 @@
         "deleted": "Node dihapus",
         "test": "Tes koneksi",
         "fillRequired": "Nama, alamat, port, dan token API wajib diisi",
-        "probeFailed": "Probe gagal"
+        "probeFailed": "Probe gagal",
+        "updateStarted": "Pembaruan panel dimulai",
+        "updateResult": "Pembaruan dipicu pada {ok} node, {failed} gagal",
+        "updateNoneEligible": "Pilih minimal satu node online dan aktif"
       }
     },
     "settings": {

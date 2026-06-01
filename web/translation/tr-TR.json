@@ -246,7 +246,10 @@
       "importDatabaseError": "Veritabanı içe aktarılırken bir hata oluştu",
       "readDatabaseError": "Veritabanı okunurken bir hata oluştu",
       "getDatabaseError": "Veritabanı alınırken bir hata oluştu",
-      "getConfigError": "Yapılandırma dosyası alınırken bir hata oluştu"
+      "getConfigError": "Yapılandırma dosyası alınırken bir hata oluştu",
+      "backupPostgresNote": "Bu panel PostgreSQL üzerinde çalışıyor. «Yedekle» bir pg_dump arşivi (.dump) indirir, «Geri Yükle» ise onu pg_restore ile geri yükler. Sunucuda PostgreSQL istemci araçlarının (pg_dump ve pg_restore) kurulu olması gerekir.",
+      "exportDatabasePgDesc": "Mevcut veritabanınızın PostgreSQL dökümünü (.dump) cihazınıza indirmek için tıklayın.",
+      "importDatabasePgDesc": "PostgreSQL veritabanınızı geri yüklemek için bir .dump dosyası seçip yüklemek üzere tıklayın. Bu, tüm mevcut verilerin yerini alır."
     },
     "inbounds": {
       "title": "Gelenler",
@@ -317,6 +320,11 @@
       "attachClientsSearchPlaceholder": "Email veya yorum ara",
       "attachClientsStatusDisabled": "Devre dışı",
       "attachClientsSelectedCount": "{total} içinden {selected} seçildi",
+      "attachExistingClients": "Mevcut istemcileri bağla…",
+      "attachExistingTitle": "«{remark}» gelenine mevcut istemcileri bağla",
+      "attachExistingDesc": "Mevcut istemcileri ({count} uygun) bu gelene bağlar — aynı UUID/parola ve paylaşılan trafik. Zaten bu gelende olan istemciler atlanır.",
+      "attachExistingNoClients": "Henüz istemci yok. Önce istemci oluşturun, ardından buraya bağlayın.",
+      "attachExistingStatusAttached": "Zaten bağlı",
       "detachClients": "İstemcileri çöz",
       "detachClientsTitle": "«{remark}» gelenindeki istemcileri çöz",
       "detachClientsDesc": "Seçilen istemcileri yalnızca bu gelenden kaldırır. İstemci kayıtları korunur (tamamen kaldırmak için Delete kullanın). Kaynakta toplam {count} istemci var.",
@@ -439,7 +447,10 @@
         "trafficGetError": "Trafik bilgisi alınırken hata oluştu",
         "getNewX25519CertError": "X25519 sertifikası alınırken hata oluştu.",
         "getNewmldsa65Error": "mldsa65 sertifikası alınırken hata oluştu.",
-        "getNewVlessEncError": "VlessEnc sertifikası alınırken hata oluştu."
+        "getNewVlessEncError": "VlessEnc sertifikası alınırken hata oluştu.",
+        "invalidClientField": "Müşteri {client}: alan {field} — {reason}",
+        "invalidField": "{field} — {reason}",
+        "moreIssues": "{message}  (+{count} tane daha)"
       },
       "form": {
         "moveUp": "Yukarı",
@@ -807,7 +818,7 @@
       "scheme": "Şema",
       "address": "Adres",
       "port": "Port",
-      "basePath": "Base Path",
+      "basePath": "Temel Yol",
       "apiToken": "API Token",
       "apiTokenPlaceholder": "Uzak panelin Ayarlar sayfasındaki token",
       "apiTokenHint": "Uzak panel API token'ını Ayarlar → API Token altında gösterir.",
@@ -826,6 +837,12 @@
       "panelVersion": "Panel sürümü",
       "actions": "İşlemler",
       "probe": "Şimdi Test Et",
+      "updatePanel": "Paneli Güncelle",
+      "updateSelected": "Seçilenleri Güncelle ({count})",
+      "updateAvailable": "Güncelleme mevcut",
+      "upToDate": "Güncel",
+      "updateConfirmTitle": "{count} düğüm en son sürüme güncellensin mi?",
+      "updateConfirmContent": "Seçilen her düğüm en son sürümü indirir ve yeniden başlatılır. Yalnızca etkin ve çevrimiçi düğümler güncellenir.",
       "testConnection": "Bağlantıyı Test Et",
       "connectionOk": "Bağlantı tamam ({ms} ms)",
       "connectionFailed": "Bağlantı başarısız",
@@ -847,7 +864,10 @@
         "deleted": "Düğüm silindi",
         "test": "Bağlantıyı test et",
         "fillRequired": "Ad, adres, port ve API token gereklidir",
-        "probeFailed": "Test başarısız"
+        "probeFailed": "Test başarısız",
+        "updateStarted": "Panel güncellemesi başlatıldı",
+        "updateResult": "{ok} düğümde güncelleme başlatıldı, {failed} başarısız",
+        "updateNoneEligible": "En az bir çevrimiçi ve etkin düğüm seçin"
       }
     },
     "settings": {

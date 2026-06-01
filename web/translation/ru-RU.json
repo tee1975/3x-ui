@@ -246,7 +246,10 @@
       "importDatabaseError": "Произошла ошибка при импорте базы данных",
       "readDatabaseError": "Произошла ошибка при чтении базы данных",
       "getDatabaseError": "Произошла ошибка при получении базы данных",
-      "getConfigError": "Произошла ошибка при получении конфигурационного файла"
+      "getConfigError": "Произошла ошибка при получении конфигурационного файла",
+      "backupPostgresNote": "Эта панель работает на PostgreSQL. «Резервная копия» скачивает архив pg_dump (.dump), а «Восстановление» загружает его обратно через pg_restore. На сервере должны быть установлены клиентские инструменты PostgreSQL (pg_dump и pg_restore).",
+      "exportDatabasePgDesc": "Нажмите, чтобы скачать дамп PostgreSQL (.dump) текущей базы данных на ваше устройство.",
+      "importDatabasePgDesc": "Нажмите, чтобы выбрать и загрузить файл .dump для восстановления базы данных PostgreSQL. Это заменит все текущие данные."
     },
     "inbounds": {
       "title": "Входящие",
@@ -317,6 +320,11 @@
       "attachClientsSearchPlaceholder": "Поиск email или комментария",
       "attachClientsStatusDisabled": "Отключено",
       "attachClientsSelectedCount": "{selected} из {total} выбрано",
+      "attachExistingClients": "Привязать существующих клиентов…",
+      "attachExistingTitle": "Привязать существующих клиентов к «{remark}»",
+      "attachExistingDesc": "Привязывает существующих клиентов (доступно {count}) к этому входящему — тот же UUID/пароль и общий трафик. Клиенты, уже привязанные к нему, пропускаются.",
+      "attachExistingNoClients": "Клиентов пока нет. Сначала создайте клиентов, затем привяжите их здесь.",
+      "attachExistingStatusAttached": "Уже привязан",
       "detachClients": "Отвязать клиентов",
       "detachClientsTitle": "Отвязать клиентов из «{remark}»",
       "detachClientsDesc": "Удаляет выбранных клиент(ов) только с этого входящего. Записи клиентов сохраняются (используйте Delete для полного удаления). У источника всего {count} клиент(ов).",
@@ -439,7 +447,10 @@
         "trafficGetError": "Ошибка получения данных о трафике",
         "getNewX25519CertError": "Ошибка при получении сертификата X25519.",
         "getNewmldsa65Error": "Ошибка при получении сертификата mldsa65.",
-        "getNewVlessEncError": "Ошибка при получении сертификата VlessEnc."
+        "getNewVlessEncError": "Ошибка при получении сертификата VlessEnc.",
+        "invalidClientField": "Клиент {client}: поле {field} — {reason}",
+        "invalidField": "{field} — {reason}",
+        "moreIssues": "{message}  (+{count} ещё)"
       },
       "form": {
         "moveUp": "Вверх",
@@ -826,6 +837,12 @@
       "panelVersion": "Версия панели",
       "actions": "Действия",
       "probe": "Проверить сейчас",
+      "updatePanel": "Обновить панель",
+      "updateSelected": "Обновить выбранные ({count})",
+      "updateAvailable": "Доступно обновление",
+      "upToDate": "Актуально",
+      "updateConfirmTitle": "Обновить {count} узлов до последней версии?",
+      "updateConfirmContent": "Каждый выбранный узел загрузит последний релиз и перезапустится. Обновляются только включённые узлы в сети.",
       "testConnection": "Проверить соединение",
       "connectionOk": "Соединение в порядке ({ms} мс)",
       "connectionFailed": "Не удалось подключиться",
@@ -847,7 +864,10 @@
         "deleted": "Узел удалён",
         "test": "Проверить соединение",
         "fillRequired": "Имя, адрес, порт и токен API обязательны",
-        "probeFailed": "Проверка не удалась"
+        "probeFailed": "Проверка не удалась",
+        "updateStarted": "Обновление панели запущено",
+        "updateResult": "Обновление запущено на {ok} узлах, {failed} не удалось",
+        "updateNoneEligible": "Выберите хотя бы один включённый узел в сети"
       }
     },
     "settings": {

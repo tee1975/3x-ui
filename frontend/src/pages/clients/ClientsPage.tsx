@@ -13,6 +13,7 @@ import {
   Modal,
   Pagination,
   Popover,
+  Result,
   Row,
   Select,
   Space,
@@ -191,11 +192,12 @@ export default function ClientsPage() {
     summary: serverSummary,
     allGroups,
     setQuery,
-    inbounds, onlines, loading, fetched, subSettings,
+    inbounds, onlines, loading, fetched, fetchError, subSettings,
     ipLimitEnable, tgBotEnable, expireDiff, trafficDiff, pageSize,
     create, update, remove, bulkDelete, bulkAdjust, bulkAddToGroup, bulkRemoveFromGroup, attach, bulkAttach, detach, bulkDetach,
     resetTraffic, resetAllTraffics, delDepleted, setEnable,
     applyTrafficEvent, applyClientStatsEvent,
+    refresh,
     hydrate,
   } = useClients();
 
@@ -625,11 +627,23 @@ export default function ClientsPage() {
       width: 90,
       render: (_v, record) => {
         const bucket = clientBucket(record);
-        if (bucket === 'depleted') return <Tag color="red">{t('depleted')}</Tag>;
-        if (record.enable && isOnline(record.email)) return <Tag color="green">{t('pages.clients.online')}</Tag>;
+        const lastOnline = record.traffic?.lastOnline ?? 0;
+        const lastOnlineTitle = `${t('lastOnline')}: ${lastOnline > 0 ? IntlUtil.formatDate(lastOnline, datepicker) : '-'}`;
+        if (bucket === 'depleted') return (
+          <Tooltip title={lastOnlineTitle}>
+            <Tag color="red">{t('depleted')}</Tag>
+          </Tooltip>
+        );
+        if (record.enable && isOnline(record.email)) return (
+          <Tag color="green"><span className="online-dot" />{t('pages.clients.online')}</Tag>
+        );
         if (!record.enable) return <Tag>{t('disabled')}</Tag>;
         if (bucket === 'expiring') return <Tag color="orange">{t('depletingSoon')}</Tag>;
-        return <Tag>{t('pages.clients.offline')}</Tag>;
+        return (
+          <Tooltip title={lastOnlineTitle}>
+            <Tag>{t('pages.clients.offline')}</Tag>
+          </Tooltip>
+        );
       },
     },
     {
@@ -732,7 +746,7 @@ export default function ClientsPage() {
       ),
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  ], [t, togglingEmail, clientBucket, isOnline, inboundsById, filters, allGroups]);
+  ], [t, togglingEmail, clientBucket, isOnline, inboundsById, filters, allGroups, datepicker]);
 
   const tablePagination = {
     current: currentPage,
@@ -788,6 +802,13 @@ export default function ClientsPage() {
             <Spin spinning={!fetched} delay={200} description={t('loading')} size="large">
               {!fetched ? (
                 <div className="loading-spacer" />
+              ) : fetchError ? (
+                <Result
+                  status="error"
+                  title={t('somethingWentWrong')}
+                  subTitle={fetchError}
+                  extra={<Button type="primary" loading={loading} onClick={refresh}>{t('refresh')}</Button>}
+                />
               ) : (
                 <Row gutter={[isMobile ? 8 : 16, isMobile ? 8 : 12]}>
                   <Col span={24}>

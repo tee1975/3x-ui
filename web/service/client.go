@@ -237,7 +237,9 @@ func (s *ClientService) SyncInbound(tx *gorm.DB, inboundId int, clients []model.
 			row.ExpiryTime = incoming.ExpiryTime
 			row.Enable = incoming.Enable
 			row.TgID = incoming.TgID
-			row.Group = incoming.Group
+			if incoming.Group != "" {
+				row.Group = incoming.Group
+			}
 			row.Comment = incoming.Comment
 			row.Reset = incoming.Reset
 			if incoming.CreatedAt > 0 && (row.CreatedAt == 0 || incoming.CreatedAt < row.CreatedAt) {
@@ -473,6 +475,18 @@ func (s *ClientService) Create(inboundSvc *InboundService, payload *ClientCreate
 		}
 	}
 
+	if client.SubID != "" {
+		var subTaken int64
+		if err := database.GetDB().Model(&model.ClientRecord{}).
+			Where("sub_id = ? AND email <> ?", client.SubID, client.Email).
+			Count(&subTaken).Error; err != nil {
+			return false, err
+		}
+		if subTaken > 0 {
+			return false, common.NewError("subId already in use:", client.SubID)
+		}
+	}
+
 	needRestart := false
 	for _, ibId := range payload.InboundIds {
 		inbound, getErr := inboundSvc.GetInbound(ibId)
@@ -641,6 +655,18 @@ func (s *ClientService) Update(inboundSvc *InboundService, id int, updated model
 			Where("id = ?", id).
 			Update("email", updated.Email).Error; err != nil {
 			return false, err
+		}
+	}
+
+	if updated.SubID != "" {
+		var subCollision int64
+		if err := database.GetDB().Model(&model.ClientRecord{}).
+			Where("sub_id = ? AND id <> ?", updated.SubID, id).
+			Count(&subCollision).Error; err != nil {
+			return false, err
+		}
+		if subCollision > 0 {
+			return false, common.NewError("Duplicate subId:", updated.SubID)
 		}
 	}
 

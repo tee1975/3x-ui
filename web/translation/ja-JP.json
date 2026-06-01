@@ -246,7 +246,10 @@
       "importDatabaseError": "データベースのインポート中にエラーが発生しました",
       "readDatabaseError": "データベースの読み取り中にエラーが発生しました",
       "getDatabaseError": "データベースの取得中にエラーが発生しました",
-      "getConfigError": "設定ファイルの取得中にエラーが発生しました"
+      "getConfigError": "設定ファイルの取得中にエラーが発生しました",
+      "backupPostgresNote": "このパネルは PostgreSQL で動作しています。「バックアップ」は pg_dump アーカイブ (.dump) をダウンロードし、「復元」は pg_restore で読み込み直します。サーバーに PostgreSQL クライアントツール (pg_dump と pg_restore) がインストールされている必要があります。",
+      "exportDatabasePgDesc": "現在のデータベースの PostgreSQL ダンプ (.dump) を端末にダウンロードするにはクリックしてください。",
+      "importDatabasePgDesc": "PostgreSQL データベースを復元するために .dump ファイルを選択してアップロードするにはクリックしてください。現在のすべてのデータが置き換えられます。"
     },
     "inbounds": {
       "title": "インバウンド",
@@ -317,6 +320,11 @@
       "attachClientsSearchPlaceholder": "メールまたはコメントを検索",
       "attachClientsStatusDisabled": "無効",
       "attachClientsSelectedCount": "{total} 中 {selected} 選択中",
+      "attachExistingClients": "既存のクライアントをアタッチ…",
+      "attachExistingTitle": "「{remark}」に既存のクライアントをアタッチ",
+      "attachExistingDesc": "既存のクライアント({count} 件)をこのインバウンドにアタッチします — 同じ UUID/パスワードと共有トラフィック。すでにアタッチ済みのクライアントはスキップされます。",
+      "attachExistingNoClients": "クライアントがまだありません。先にクライアントを作成してから、ここでアタッチしてください。",
+      "attachExistingStatusAttached": "アタッチ済み",
       "detachClients": "クライアントをデタッチ",
       "detachClientsTitle": "「{remark}」のクライアントをデタッチ",
       "detachClientsDesc": "選択したクライアントをこのインバウンドのみから外します。クライアントレコードは保持されます (完全に削除するには Delete を使用)。ソースには合計 {count} クライアントがあります。",
@@ -439,7 +447,10 @@
         "trafficGetError": "トラフィックの取得中にエラーが発生しました",
         "getNewX25519CertError": "X25519証明書の取得中にエラーが発生しました。",
         "getNewmldsa65Error": "mldsa65証明書の取得中にエラーが発生しました。",
-        "getNewVlessEncError": "VlessEnc証明書の取得中にエラーが発生しました。"
+        "getNewVlessEncError": "VlessEnc証明書の取得中にエラーが発生しました。",
+        "invalidClientField": "クライアント {client}: フィールド {field} — {reason}",
+        "invalidField": "{field} — {reason}",
+        "moreIssues": "{message}  (他 {count} 件)"
       },
       "form": {
         "moveUp": "上へ",
@@ -826,6 +837,12 @@
       "panelVersion": "パネルのバージョン",
       "actions": "操作",
       "probe": "今すぐプローブ",
+      "updatePanel": "パネルを更新",
+      "updateSelected": "選択を更新 ({count})",
+      "updateAvailable": "更新あり",
+      "upToDate": "最新",
+      "updateConfirmTitle": "{count} 個のノードを最新バージョンに更新しますか？",
+      "updateConfirmContent": "選択した各ノードは最新リリースをダウンロードして再起動します。有効かつオンラインのノードのみが更新されます。",
       "testConnection": "接続テスト",
       "connectionOk": "接続OK ({ms} ms)",
       "connectionFailed": "接続に失敗しました",
@@ -847,7 +864,10 @@
         "deleted": "ノードを削除しました",
         "test": "接続テスト",
         "fillRequired": "名前、アドレス、ポート、APIトークンは必須です",
-        "probeFailed": "プローブに失敗しました"
+        "probeFailed": "プローブに失敗しました",
+        "updateStarted": "パネルの更新を開始しました",
+        "updateResult": "{ok} 個のノードで更新を開始、{failed} 個失敗",
+        "updateNoneEligible": "オンラインで有効なノードを少なくとも1つ選択してください"
       }
     },
     "settings": {

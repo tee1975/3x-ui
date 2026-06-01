@@ -246,7 +246,10 @@
       "importDatabaseError": "خطا در وارد کردن پایگاه داده",
       "readDatabaseError": "خطا در خواندن پایگاه داده",
       "getDatabaseError": "خطا در دریافت پایگاه داده",
-      "getConfigError": "خطا در دریافت فایل پیکربندی"
+      "getConfigError": "خطا در دریافت فایل پیکربندی",
+      "backupPostgresNote": "این پنل روی PostgreSQL اجرا می‌شود. «پشتیبان‌گیری» یک آرشیو pg_dump (.dump) دانلود می‌کند و «بازیابی» آن را با pg_restore بازمی‌گرداند. سرور باید ابزارهای کلاینت PostgreSQL (pg_dump و pg_restore) را نصب داشته باشد.",
+      "exportDatabasePgDesc": "برای دانلود یک دامپ PostgreSQL (.dump) از پایگاه داده فعلی روی دستگاهتان کلیک کنید.",
+      "importDatabasePgDesc": "برای انتخاب و بارگذاری یک فایل .dump جهت بازیابی پایگاه داده PostgreSQL کلیک کنید. این کار همه داده‌های فعلی را جایگزین می‌کند."
     },
     "inbounds": {
       "title": "ورودی‌ها",
@@ -317,6 +320,11 @@
       "attachClientsSearchPlaceholder": "جستجوی ایمیل یا توضیح",
       "attachClientsStatusDisabled": "غیرفعال",
       "attachClientsSelectedCount": "{selected} از {total} انتخاب‌شده",
+      "attachExistingClients": "الصاق کاربران موجود…",
+      "attachExistingTitle": "الصاق کاربران موجود به «{remark}»",
+      "attachExistingDesc": "کاربران موجود ({count} کاربر در دسترس) را به این ورودی الصاق می‌کند — با همان UUID/رمز و ترافیک مشترک. کاربرانی که از قبل روی این ورودی هستند نادیده گرفته می‌شوند.",
+      "attachExistingNoClients": "هنوز هیچ کاربری وجود ندارد. ابتدا کاربر بسازید، سپس اینجا الصاق کنید.",
+      "attachExistingStatusAttached": "از قبل الصاق‌شده",
       "detachClients": "جداسازی کاربران",
       "detachClientsTitle": "جداسازی کاربران از «{remark}»",
       "detachClientsDesc": "کاربر(های) انتخابی را تنها از این ورودی حذف می‌کند. خود رکورد کاربر حفظ می‌شود (برای حذف کامل از Delete استفاده کنید). مبدا در مجموع {count} کاربر دارد.",
@@ -439,7 +447,10 @@
         "trafficGetError": "خطا در دریافت ترافیک‌ها",
         "getNewX25519CertError": "خطا در دریافت گواهی X25519.",
         "getNewmldsa65Error": "خطا در دریافت گواهی mldsa65.",
-        "getNewVlessEncError": "خطا در دریافت گواهی VlessEnc."
+        "getNewVlessEncError": "خطا در دریافت گواهی VlessEnc.",
+        "invalidClientField": "کلاینت {client}: فیلد {field} — {reason}",
+        "invalidField": "{field} — {reason}",
+        "moreIssues": "{message}  (+{count} مورد دیگر)"
       },
       "form": {
         "moveUp": "بالا",
@@ -826,6 +837,12 @@
       "panelVersion": "نسخه پنل",
       "actions": "عملیات",
       "probe": "بررسی فوری",
+      "updatePanel": "به‌روزرسانی پنل",
+      "updateSelected": "به‌روزرسانی انتخاب‌شده‌ها ({count})",
+      "updateAvailable": "به‌روزرسانی موجود",
+      "upToDate": "به‌روز",
+      "updateConfirmTitle": "{count} نود به آخرین نسخه به‌روزرسانی شوند؟",
+      "updateConfirmContent": "هر نود انتخاب‌شده آخرین نسخه را دانلود و روی آن ری‌استارت می‌شود. فقط نودهای فعال و آنلاین به‌روزرسانی می‌شوند.",
       "testConnection": "تست اتصال",
       "connectionOk": "اتصال موفق ({ms} میلی‌ثانیه)",
       "connectionFailed": "اتصال ناموفق",
@@ -847,7 +864,10 @@
         "deleted": "نود حذف شد",
         "test": "تست اتصال",
         "fillRequired": "نام، آدرس، پورت و توکن API الزامی است",
-        "probeFailed": "بررسی ناموفق"
+        "probeFailed": "بررسی ناموفق",
+        "updateStarted": "به‌روزرسانی پنل آغاز شد",
+        "updateResult": "به‌روزرسانی روی {ok} نود آغاز شد، {failed} ناموفق",
+        "updateNoneEligible": "حداقل یک نود آنلاین و فعال انتخاب کنید"
       }
     },
     "settings": {

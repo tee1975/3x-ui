@@ -246,7 +246,10 @@
       "importDatabaseError": "حدث خطأ أثناء استيراد قاعدة البيانات",
       "readDatabaseError": "حدث خطأ أثناء قراءة قاعدة البيانات",
       "getDatabaseError": "حدث خطأ أثناء استرجاع قاعدة البيانات",
-      "getConfigError": "حدث خطأ أثناء استرجاع ملف الإعدادات"
+      "getConfigError": "حدث خطأ أثناء استرجاع ملف الإعدادات",
+      "backupPostgresNote": "تعمل هذه اللوحة على PostgreSQL. يقوم «النسخ الاحتياطي» بتنزيل أرشيف pg_dump (.dump)، و«الاستعادة» تعيد تحميله عبر pg_restore. يجب أن تكون أدوات عميل PostgreSQL (pg_dump و pg_restore) مثبَّتة على الخادم.",
+      "exportDatabasePgDesc": "انقر لتنزيل نسخة PostgreSQL (.dump) من قاعدة بياناتك الحالية إلى جهازك.",
+      "importDatabasePgDesc": "انقر لاختيار ورفع ملف .dump لاستعادة قاعدة بيانات PostgreSQL. سيؤدي هذا إلى استبدال جميع البيانات الحالية."
     },
     "inbounds": {
       "title": "الواردات",
@@ -317,6 +320,11 @@
       "attachClientsSearchPlaceholder": "ابحث بالبريد أو التعليق",
       "attachClientsStatusDisabled": "معطل",
       "attachClientsSelectedCount": "{selected} من {total} محدد",
+      "attachExistingClients": "إرفاق العملاء الحاليين…",
+      "attachExistingTitle": "إرفاق العملاء الحاليين بـ «{remark}»",
+      "attachExistingDesc": "يرفق العملاء الحاليين ({count} متاح) بهذا الوارد — بنفس UUID/كلمة المرور وحركة المرور المشتركة. يتم تخطي العملاء الموجودين عليه بالفعل.",
+      "attachExistingNoClients": "لا يوجد عملاء بعد. أنشئ عملاء أولاً ثم أرفقهم هنا.",
+      "attachExistingStatusAttached": "مُرفق بالفعل",
       "detachClients": "فصل العملاء",
       "detachClientsTitle": "فصل عملاء من «{remark}»",
       "detachClientsDesc": "يزيل العميل (العملاء) المحدد من هذا الوارد فقط. تُحفظ سجلات العملاء (استخدم Delete للإزالة الكاملة). المصدر يحتوي على {count} عميل إجمالاً.",
@@ -439,7 +447,10 @@
         "trafficGetError": "خطأ في الحصول على حركات المرور",
         "getNewX25519CertError": "حدث خطأ أثناء الحصول على شهادة X25519.",
         "getNewmldsa65Error": "حدث خطاء في الحصول على mldsa65.",
-        "getNewVlessEncError": "حدث خطأ أثناء الحصول على VlessEnc."
+        "getNewVlessEncError": "حدث خطأ أثناء الحصول على VlessEnc.",
+        "invalidClientField": "العميل {client}: الحقل {field} — {reason}",
+        "invalidField": "{field} — {reason}",
+        "moreIssues": "{message}  (+{count} أخرى)"
       },
       "form": {
         "moveUp": "أعلى",
@@ -826,6 +837,12 @@
       "panelVersion": "إصدار اللوحة",
       "actions": "العمليات",
       "probe": "فحص فوري",
+      "updatePanel": "تحديث اللوحة",
+      "updateSelected": "تحديث المحدد ({count})",
+      "updateAvailable": "تحديث متاح",
+      "upToDate": "محدّث",
+      "updateConfirmTitle": "تحديث {count} عقدة إلى أحدث إصدار؟",
+      "updateConfirmContent": "كل عقدة محددة ستنزّل أحدث إصدار وتعيد التشغيل عليه. يتم تحديث العقد المفعّلة والمتصلة فقط.",
       "testConnection": "اختبار الاتصال",
       "connectionOk": "الاتصال شغال ({ms} ms)",
       "connectionFailed": "فشل الاتصال",
@@ -847,7 +864,10 @@
         "deleted": "اتمسح النود",
         "test": "اختبار الاتصال",
         "fillRequired": "الاسم والعنوان والبورت وتوكن API كلهم مطلوبين",
-        "probeFailed": "فشل الفحص"
+        "probeFailed": "فشل الفحص",
+        "updateStarted": "بدأ تحديث اللوحة",
+        "updateResult": "تم بدء التحديث على {ok} عقدة، فشل {failed}",
+        "updateNoneEligible": "اختر عقدة واحدة على الأقل متصلة ومفعّلة"
       }
     },
     "settings": {
