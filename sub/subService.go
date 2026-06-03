@@ -1,7 +1,9 @@
 package sub
 
 import (
+	"crypto/sha256"
 	"encoding/base64"
+	"encoding/hex"
 	"fmt"
 	"maps"
 	"net"
@@ -609,6 +611,9 @@ func (s *SubService) genHysteriaLink(inbound *model.Inbound, email string) strin
 			}
 		}
 		if pins, ok := pinnedSha256List(tlsSettings); ok {
+			for i, p := range pins {
+				pins[i] = hysteriaPinHex(p)
+			}
 			params["pinSHA256"] = strings.Join(pins, ",")
 		}
 	}
@@ -670,8 +675,23 @@ func (s *SubService) genHysteriaLink(inbound *model.Inbound, email string) strin
 
 	// No external proxy configured — use the inbound's resolved address so
 	// node-managed inbounds get the node's host instead of the central panel's.
+	if hopPorts := hysteriaHopPorts(stream); hopPorts != "" {
+		params["mport"] = hopPorts
+	}
 	link := fmt.Sprintf("%s://%s@%s:%d", protocol, auth, s.resolveInboundAddress(inbound), inbound.Port)
 	return buildLinkWithParams(link, params, s.genRemark(inbound, email, ""))
+}
+
+// hysteriaHopPorts returns the configured Hysteria2 UDP port-hopping range
+// (finalmask.quicParams.udpHop.ports), or "" when port hopping is off. The
+// range is emitted as the v2rayN-compatible `mport` query param; the URL port
+// field stays numeric so .NET-Uri-based importers (v2rayN) can parse the link.
+func hysteriaHopPorts(stream map[string]any) string {
+	finalmask, _ := stream["finalmask"].(map[string]any)
+	quicParams, _ := finalmask["quicParams"].(map[string]any)
+	udpHop, _ := quicParams["udpHop"].(map[string]any)
+	ports, _ := udpHop["ports"].(string)
+	return strings.TrimSpace(ports)
 }
 
 // loadNodes refreshes nodesByID from the DB. Called once per request so
@@ -693,15 +713,22 @@ func (s *SubService) loadNodes() {
 	s.nodesByID = m
 }
 
-// resolveInboundAddress returns the node's address for node-managed inbounds,
-// otherwise the subscriber's host (s.address). The inbound's bind Listen is
-// deliberately ignored: it's a server-side address, not a client-reachable
-// host, so operators advertise a specific endpoint via External Proxy instead.
+// resolveInboundAddress picks the host an external client should connect to:
+//   1. node-managed inbound -> the node's address
+//   2. an explicit, client-reachable bind Listen -> that Listen
+//   3. otherwise the subscriber's request host (s.address)
+// A loopback/wildcard bind or a unix-domain-socket listen is a server-side
+// detail and is never advertised; External Proxy remains the way to advertise
+// an arbitrary endpoint. Mirrors the frontend's resolveAddr so the panel QR and
+// the subscription agree.
 func (s *SubService) resolveInboundAddress(inbound *model.Inbound) string {
 	if inbound.NodeID != nil && s.nodesByID != nil {
 		if n, ok := s.nodesByID[*inbound.NodeID]; ok && n.Address != "" {
 			return n.Address
 		}
+	}
+	if listen := inbound.Listen; listen != "" && listen[0] != '@' && listen[0] != '/' && isRoutableHost(listen) {
+		return listen
 	}
 	return s.address
 }
@@ -920,6 +947,36 @@ func pinnedSha256List(tlsClientSettings any) ([]string, bool) {
 		return nil, false
 	}
 	return out, true
+}
+
+// hysteriaPinHex normalises a pinnedPeerCertSha256 entry into the 64-character
+// lowercase hex form that Xray-core's Hysteria2 pinSHA256 parser requires.
+//
+// The panel stores pins in several shapes: base64 (xray-core's native TLS
+// format, used by the generate button and the JSON subscription) and hex —
+// either bare or colon-separated as `openssl x509 -fingerprint -sha256` emits
+// it. Hysteria2 clients hex-decode pinSHA256 and crash on a base64 value, so
+// each entry is coerced to bare hex here. Anything that is neither a 32-byte
+// hex nor a 32-byte base64 SHA-256 is returned unchanged so unexpected data is
+// not silently dropped. Mirrors decodeCertPin in web/service/node.go.
+func hysteriaPinHex(pin string) string {
+	pin = strings.TrimSpace(pin)
+	if h := strings.ReplaceAll(pin, ":", ""); len(h) == hex.EncodedLen(sha256.Size) {
+		if _, err := hex.DecodeString(h); err == nil {
+			return strings.ToLower(h)
+		}
+	}
+	for _, enc := range []*base64.Encoding{
+		base64.StdEncoding,
+		base64.RawStdEncoding,
+		base64.URLEncoding,
+		base64.RawURLEncoding,
+	} {
+		if b, err := enc.DecodeString(pin); err == nil && len(b) == sha256.Size {
+			return hex.EncodeToString(b)
+		}
+	}
+	return pin
 }
 
 func applyShareRealityParams(stream map[string]any, params map[string]string) {

@@ -224,10 +224,7 @@ func (s *NodeService) GetAll() ([]*model.Node, error) {
 		Select("inbound_id, email, enable, total, up, down, expiry_time").
 		Where("inbound_id IN ?", inboundIDs).
 		Scan(&trafficRows).Error; err == nil {
-		online := make(map[string]struct{})
-		for _, email := range s.onlineEmails() {
-			online[email] = struct{}{}
-		}
+		onlineByNodeSet := s.onlineEmailsByNode()
 		depletedByNode := make(map[int]int)
 		onlineByNode := make(map[int]int)
 		for _, row := range trafficRows {
@@ -240,8 +237,12 @@ func (s *NodeService) GetAll() ([]*model.Node, error) {
 			if expired || exhausted || !row.Enable {
 				depletedByNode[nodeID]++
 			}
-			if _, ok := online[row.Email]; ok {
-				onlineByNode[nodeID]++
+			// Scope online by the node the inbound lives on: a client online
+			// on one node must not count as online on another.
+			if set, ok := onlineByNodeSet[nodeID]; ok {
+				if _, isOnline := set[row.Email]; isOnline {
+					onlineByNode[nodeID]++
+				}
 			}
 		}
 		for _, n := range nodes {
@@ -254,9 +255,18 @@ func (s *NodeService) GetAll() ([]*model.Node, error) {
 	return nodes, nil
 }
 
-func (s *NodeService) onlineEmails() []string {
+func (s *NodeService) onlineEmailsByNode() map[int]map[string]struct{} {
 	svc := InboundService{}
-	return svc.GetOnlineClients()
+	byNode := svc.GetOnlineClientsByNode()
+	out := make(map[int]map[string]struct{}, len(byNode))
+	for nodeID, emails := range byNode {
+		set := make(map[string]struct{}, len(emails))
+		for _, email := range emails {
+			set[email] = struct{}{}
+		}
+		out[nodeID] = set
+	}
+	return out
 }
 
 func (s *NodeService) GetById(id int) (*model.Node, error) {
@@ -562,7 +572,7 @@ func (p HeartbeatPatch) ToUI(ok bool) ProbeResultUI {
 		CpuPct:       p.CpuPct,
 		MemPct:       p.MemPct,
 		UptimeSecs:   p.UptimeSecs,
-		Error:        p.LastError,
+		Error:        FriendlyProbeError(p.LastError),
 	}
 	if ok {
 		r.Status = "online"
@@ -570,4 +580,11 @@ func (p HeartbeatPatch) ToUI(ok bool) ProbeResultUI {
 		r.Status = "offline"
 	}
 	return r
+}
+
+func FriendlyProbeError(msg string) string {
+	if strings.Contains(msg, "server gave HTTP response to HTTPS client") {
+		return "the server speaks HTTP, not HTTPS; set the node scheme to http"
+	}
+	return msg
 }
