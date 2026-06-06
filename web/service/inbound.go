@@ -1193,6 +1193,11 @@ func (s *InboundService) updateClientTraffics(tx *gorm.DB, oldInbound *model.Inb
 		if err := s.DelClientStat(tx, email); err != nil {
 			return err
 		}
+		// Keep inbound_client_ips in sync when the inbound edit drops an
+		// email, so the IP-limit job doesn't keep a ghost tracking row (#4963).
+		if err := s.DelClientIPs(tx, email); err != nil {
+			return err
+		}
 	}
 	for i := range newClients {
 		email := newClients[i].Email
@@ -1760,7 +1765,7 @@ func (s *InboundService) setRemoteTrafficLocked(nodeID int, snap *runtime.Traffi
 			// from the node arriving after a central disable would otherwise
 			// overwrite enable=false back to true, letting the client accumulate
 			// far more traffic than their limit before being disabled again.
-			enableExpr := "CASE WHEN ? = 0 THEN 0 ELSE enable END"
+			enableExpr := "enable AND ?"
 			if err := tx.Exec(
 				fmt.Sprintf(
 					`UPDATE client_traffics
