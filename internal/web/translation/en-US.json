@@ -95,7 +95,9 @@
     "active": "Active",
     "inactive": "Inactive",
     "unlimited": "Unlimited",
-    "noExpiry": "No expiry"
+    "noExpiry": "No expiry",
+    "copyAllConfigs": "Copy All Configs",
+    "copyAllConfigsCopied": "All configs copied"
   },
   "menu": {
     "theme": "Theme",
@@ -280,7 +282,8 @@
         "quickAdded": "Added {n} fallback(s)",
         "quickAddedNone": "No new eligible inbounds to add",
         "routesWhen": "Routes when",
-        "defaultCatchAll": "Default — catches anything else"
+        "defaultCatchAll": "Default — catches anything else",
+        "needsTls": "Fallbacks become available once Security is set to TLS or Reality on the Security tab (VLESS/Trojan over RAW only)."
       },
       "protocol": "Protocol",
       "port": "Port",
@@ -588,7 +591,16 @@
         "mldsa65Seed": "mldsa65 Seed",
         "mldsa65Verify": "mldsa65 Verify",
         "getNewSeed": "Get New Seed",
-        "listenHelp": "You can also enter a Unix socket path (e.g. /run/xray/in.sock) to listen on a socket instead of a TCP port — set Port to 0 in that case."
+        "listenHelp": "You can also enter a Unix socket path (e.g. /run/xray/in.sock) to listen on a socket instead of a TCP port — set Port to 0 in that case.",
+        "shareAddrStrategy": "Share address strategy",
+        "shareAddrStrategyHelp": "Controls which address is written into exported share links, QR codes, and subscription output.",
+        "shareAddr": "Custom share address",
+        "shareAddrHelp": "Used only when the share address strategy is Custom. Enter a host or IP without a scheme or port.",
+        "shareAddrStrategyOptions": {
+          "node": "Node address",
+          "listen": "Inbound listen",
+          "custom": "Custom"
+        }
       },
       "info": {
         "mode": "Mode",
@@ -626,6 +638,8 @@
       }
     },
     "clients": {
+      "tabBasic": "Basic",
+      "tabConfig": "Config",
       "add": "Add Client",
       "edit": "Edit Client",
       "submitAdd": "Add Client",
@@ -660,6 +674,10 @@
       "searchPlaceholder": "Search email, comment, sub ID, UUID, password, auth…",
       "filterTitle": "Filter clients",
       "clearAllFilters": "Clear all",
+      "filters": {
+        "nodes": "Nodes",
+        "localPanel": "Local (this panel)"
+      },
       "showingCount": "Showing {shown} of {total}",
       "sortOldest": "Oldest first",
       "sortNewest": "Newest first",
@@ -702,6 +720,8 @@
       "duration": "Duration",
       "attachedInbounds": "Attached inbounds",
       "selectInbound": "Select one or more inbounds",
+      "selectAllInbounds": "Select all",
+      "clearAllInbounds": "Clear all",
       "noSubId": "This client has no subId, no shareable link.",
       "noLinks": "No shareable links — attach this client to a protocol-capable inbound first.",
       "link": "Link",
@@ -841,11 +861,21 @@
       "basePath": "Base Path",
       "apiToken": "API Token",
       "apiTokenPlaceholder": "Token from the remote panel's Settings page",
-      "apiTokenHint": "The remote panel exposes its API token under Settings → API Token.",
+      "apiTokenHint": "The remote panel exposes its API token under Authentication → API Token.",
       "regenerate": "Regenerate Token",
       "regenerateConfirm": "Regenerating invalidates the current token. Any central panel using it will lose access until updated. Continue?",
       "allowPrivateAddress": "Allow private address",
       "allowPrivateAddressHint": "Enable only for nodes on a private network or VPN.",
+      "inboundSyncMode": "Inbound import",
+      "inboundSyncModeHint": "Choose which inbounds are imported from this node. Existing nodes default to all inbounds.",
+      "allInbounds": "All inbounds",
+      "selectedInbounds": "Selected inbounds",
+      "inboundTags": "Inbounds",
+      "inboundTagsHint": "Selection is matched by the inbound tag. An empty selection imports none.",
+      "inboundTagsPlaceholder": "Load and select inbounds",
+      "loadInbounds": "Load inbounds from node",
+      "inboundsLoaded": "Loaded {{count}} inbounds",
+      "inboundsLoadFailed": "Failed to load inbounds",
       "enable": "Enabled",
       "status": "Status",
       "cpu": "CPU",

@@ -95,7 +95,9 @@
     "active": "启用",
     "inactive": "停用",
     "unlimited": "无限制",
-    "noExpiry": "无到期"
+    "noExpiry": "无到期",
+    "copyAllConfigs": "复制全部配置",
+    "copyAllConfigsCopied": "已复制全部配置"
   },
   "menu": {
     "theme": "主题",
@@ -280,7 +282,8 @@
         "quickAdded": "已添加 {n} 条回落",
         "quickAddedNone": "没有可添加的新入站",
         "routesWhen": "当满足条件时路由",
-        "defaultCatchAll": "默认 — 兜底匹配其他所有"
+        "defaultCatchAll": "默认 — 兜底匹配其他所有",
+        "needsTls": "在“安全”标签页选择 TLS 或 Reality 后即可配置回落（仅限 RAW 上的 VLESS/Trojan）。"
       },
       "protocol": "协议",
       "port": "端口",
@@ -587,7 +590,16 @@
         "mldsa65Seed": "mldsa65 Seed",
         "mldsa65Verify": "mldsa65 Verify",
         "getNewSeed": "获取新 Seed",
-        "listenHelp": "也可以填写 Unix socket 路径（例如 /run/xray/in.sock），以使用套接字而非 TCP 端口监听——此时请将端口设为 0。"
+        "listenHelp": "也可以填写 Unix socket 路径（例如 /run/xray/in.sock），以使用套接字而非 TCP 端口监听——此时请将端口设为 0。",
+        "shareAddrStrategy": "分享地址策略",
+        "shareAddrStrategyHelp": "控制导出分享链接、二维码和订阅输出时写入哪个地址。",
+        "shareAddr": "自定义分享地址",
+        "shareAddrHelp": "仅在分享地址策略为自定义时使用。填写不带协议和端口的域名或 IP。",
+        "shareAddrStrategyOptions": {
+          "node": "节点地址",
+          "listen": "入站监听地址",
+          "custom": "自定义"
+        }
       },
       "info": {
         "mode": "模式",
@@ -625,6 +637,8 @@
       }
     },
     "clients": {
+      "tabBasic": "基本",
+      "tabConfig": "配置",
       "add": "添加客户端",
       "edit": "编辑客户端",
       "submitAdd": "添加客户端",
@@ -659,6 +673,10 @@
       "searchPlaceholder": "搜索邮箱、备注、sub ID、UUID、密码、auth…",
       "filterTitle": "筛选客户端",
       "clearAllFilters": "清除全部",
+      "filters": {
+        "nodes": "节点",
+        "localPanel": "本机（此面板）"
+      },
       "showingCount": "显示 {shown} / {total}",
       "sortOldest": "最旧优先",
       "sortNewest": "最新优先",
@@ -701,6 +719,8 @@
       "duration": "时长",
       "attachedInbounds": "关联入站",
       "selectInbound": "选择一个或多个入站",
+      "selectAllInbounds": "全选",
+      "clearAllInbounds": "全部清除",
       "noSubId": "该客户端没有 subId，无法生成共享链接。",
       "noLinks": "没有可共享的链接 — 请先将此客户端关联到支持协议的入站。",
       "link": "链接",
@@ -840,11 +860,21 @@
       "basePath": "基础路径",
       "apiToken": "API 令牌",
       "apiTokenPlaceholder": "远程面板设置页中的令牌",
-      "apiTokenHint": "远程面板在 设置 → API 令牌 中显示其 API 令牌。",
+      "apiTokenHint": "远程面板在 安全设定 → API 令牌 中显示其 API 令牌。",
       "regenerate": "重新生成令牌",
       "regenerateConfirm": "重新生成会使当前令牌失效。任何使用该令牌的中央面板都会失去访问权限，直至更新。是否继续？",
       "allowPrivateAddress": "允许私有地址",
       "allowPrivateAddressHint": "仅对私有网络或VPN上的节点启用。",
+      "inboundSyncMode": "入站导入",
+      "inboundSyncModeHint": "选择要从此节点导入的入站。现有节点默认导入全部入站。",
+      "allInbounds": "全部入站",
+      "selectedInbounds": "选定的入站",
+      "inboundTags": "入站",
+      "inboundTagsHint": "按入站标签匹配。空选择不会导入任何入站。",
+      "inboundTagsPlaceholder": "加载并选择入站",
+      "loadInbounds": "从节点加载入站",
+      "inboundsLoaded": "已加载 {{count}} 个入站",
+      "inboundsLoadFailed": "加载入站失败",
       "enable": "已启用",
       "status": "状态",
       "cpu": "CPU",

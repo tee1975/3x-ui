@@ -95,7 +95,9 @@
     "active": "啟用",
     "inactive": "停用",
     "unlimited": "無限制",
-    "noExpiry": "無到期"
+    "noExpiry": "無到期",
+    "copyAllConfigs": "複製全部配置",
+    "copyAllConfigsCopied": "已複製全部配置"
   },
   "menu": {
     "theme": "主題",
@@ -280,7 +282,8 @@
         "quickAdded": "已新增 {n} 個回落",
         "quickAddedNone": "沒有可新增的新入站",
         "routesWhen": "當條件成立時路由",
-        "defaultCatchAll": "預設 — 兜底匹配其餘"
+        "defaultCatchAll": "預設 — 兜底匹配其餘",
+        "needsTls": "在「安全」分頁選擇 TLS 或 Reality 後即可設定回落（僅限 RAW 上的 VLESS/Trojan）。"
       },
       "protocol": "協議",
       "port": "連接埠",
@@ -587,7 +590,16 @@
         "mldsa65Seed": "mldsa65 Seed",
         "mldsa65Verify": "mldsa65 Verify",
         "getNewSeed": "取得新 Seed",
-        "listenHelp": "也可以填寫 Unix socket 路徑（例如 /run/xray/in.sock），以使用通訊端而非 TCP 連接埠監聽——此時請將連接埠設為 0。"
+        "listenHelp": "也可以填寫 Unix socket 路徑（例如 /run/xray/in.sock），以使用通訊端而非 TCP 連接埠監聽——此時請將連接埠設為 0。",
+        "shareAddrStrategy": "分享地址策略",
+        "shareAddrStrategyHelp": "控制匯出分享連結、QR Code 和訂閱輸出時寫入哪個地址。",
+        "shareAddr": "自訂分享地址",
+        "shareAddrHelp": "僅在分享地址策略為自訂時使用。填寫不帶協定和連接埠的網域或 IP。",
+        "shareAddrStrategyOptions": {
+          "node": "節點地址",
+          "listen": "入站監聽地址",
+          "custom": "自訂"
+        }
       },
       "info": {
         "mode": "模式",
@@ -625,6 +637,8 @@
       }
     },
     "clients": {
+      "tabBasic": "基本",
+      "tabConfig": "配置",
       "add": "新增客戶端",
       "edit": "編輯客戶端",
       "submitAdd": "新增客戶端",
@@ -659,6 +673,10 @@
       "searchPlaceholder": "搜尋電子郵件、備註、sub ID、UUID、密碼、auth…",
       "filterTitle": "篩選客戶端",
       "clearAllFilters": "清除全部",
+      "filters": {
+        "nodes": "節點",
+        "localPanel": "本機（此面板）"
+      },
       "showingCount": "顯示 {shown} / {total}",
       "sortOldest": "最舊優先",
       "sortNewest": "最新優先",
@@ -701,6 +719,8 @@
       "duration": "時長",
       "attachedInbounds": "關聯入站",
       "selectInbound": "選擇一個或多個入站",
+      "selectAllInbounds": "全選",
+      "clearAllInbounds": "全部清除",
       "noSubId": "此客戶端沒有 subId，無法產生共享連結。",
       "noLinks": "沒有可共享的連結 — 請先將此客戶端關聯至支援協定的入站。",
       "link": "連結",
@@ -840,11 +860,21 @@
       "basePath": "基礎路徑",
       "apiToken": "API 權杖",
       "apiTokenPlaceholder": "遠端面板設定頁中的權杖",
-      "apiTokenHint": "遠端面板在 設定 → API 權杖 中顯示其 API 權杖。",
+      "apiTokenHint": "遠端面板在 安全設定 → API 權杖 中顯示其 API 權杖。",
       "regenerate": "重新產生權杖",
       "regenerateConfirm": "重新產生會使目前的權杖失效。任何使用該權杖的中央面板將失去存取權，直到更新為止。是否繼續？",
       "allowPrivateAddress": "允許私有地址",
       "allowPrivateAddressHint": "僅對私有網路或VPN上的節點啟用。",
+      "inboundSyncMode": "入站匯入",
+      "inboundSyncModeHint": "選擇要從此節點匯入的入站。現有節點預設匯入所有入站。",
+      "allInbounds": "所有入站",
+      "selectedInbounds": "選取的入站",
+      "inboundTags": "入站",
+      "inboundTagsHint": "依入站標籤比對。空白選取不會匯入任何入站。",
+      "inboundTagsPlaceholder": "載入並選取入站",
+      "loadInbounds": "從節點載入入站",
+      "inboundsLoaded": "已載入 {{count}} 個入站",
+      "inboundsLoadFailed": "載入入站失敗",
       "enable": "已啟用",
       "status": "狀態",
       "cpu": "CPU",

@@ -95,7 +95,9 @@
     "active": "Hoạt động",
     "inactive": "Không hoạt động",
     "unlimited": "Không giới hạn",
-    "noExpiry": "Không hết hạn"
+    "noExpiry": "Không hết hạn",
+    "copyAllConfigs": "Sao chép tất cả cấu hình",
+    "copyAllConfigsCopied": "Đã sao chép tất cả cấu hình"
   },
   "menu": {
     "theme": "Chủ đề",
@@ -280,7 +282,8 @@
         "quickAdded": "Đã thêm {n} fallback",
         "quickAddedNone": "Không có inbound mới nào đủ điều kiện",
         "routesWhen": "Định tuyến khi",
-        "defaultCatchAll": "Mặc định — bắt mọi thứ khác"
+        "defaultCatchAll": "Mặc định — bắt mọi thứ khác",
+        "needsTls": "Fallback khả dụng sau khi chọn TLS hoặc Reality trong thẻ Bảo mật (chỉ VLESS/Trojan trên RAW)."
       },
       "protocol": "Giao thức",
       "port": "Cổng",
@@ -587,7 +590,16 @@
         "mldsa65Seed": "mldsa65 Seed",
         "mldsa65Verify": "mldsa65 Verify",
         "getNewSeed": "Lấy Seed mới",
-        "listenHelp": "Bạn cũng có thể nhập đường dẫn Unix socket (ví dụ /run/xray/in.sock) để lắng nghe trên socket thay vì cổng TCP — khi đó hãy đặt Port là 0."
+        "listenHelp": "Bạn cũng có thể nhập đường dẫn Unix socket (ví dụ /run/xray/in.sock) để lắng nghe trên socket thay vì cổng TCP — khi đó hãy đặt Port là 0.",
+        "shareAddrStrategy": "Chiến lược địa chỉ chia sẻ",
+        "shareAddrStrategyHelp": "Kiểm soát địa chỉ được ghi vào liên kết chia sẻ đã xuất, mã QR và nội dung đăng ký.",
+        "shareAddr": "Địa chỉ chia sẻ tùy chỉnh",
+        "shareAddrHelp": "Chỉ dùng khi chiến lược địa chỉ chia sẻ là Tùy chỉnh. Nhập host hoặc IP không kèm giao thức hoặc cổng.",
+        "shareAddrStrategyOptions": {
+          "node": "Địa chỉ node",
+          "listen": "Địa chỉ listen inbound",
+          "custom": "Tùy chỉnh"
+        }
       },
       "info": {
         "mode": "Chế độ",
@@ -625,6 +637,8 @@
       }
     },
     "clients": {
+      "tabBasic": "Cơ bản",
+      "tabConfig": "Cấu hình",
       "add": "Thêm khách hàng",
       "edit": "Chỉnh sửa khách hàng",
       "submitAdd": "Thêm khách hàng",
@@ -659,6 +673,10 @@
       "searchPlaceholder": "Tìm email, ghi chú, sub ID, UUID, mật khẩu, auth…",
       "filterTitle": "Lọc client",
       "clearAllFilters": "Xóa tất cả",
+      "filters": {
+        "nodes": "Nút",
+        "localPanel": "Cục bộ (bảng này)"
+      },
       "showingCount": "Hiển thị {shown} trên {total}",
       "sortOldest": "Cũ nhất trước",
       "sortNewest": "Mới nhất trước",
@@ -701,6 +719,8 @@
       "duration": "Thời hạn",
       "attachedInbounds": "Inbound đã gắn",
       "selectInbound": "Chọn một hoặc nhiều inbound",
+      "selectAllInbounds": "Chọn tất cả",
+      "clearAllInbounds": "Xóa tất cả",
       "noSubId": "Khách hàng này không có subId, không có liên kết chia sẻ.",
       "noLinks": "Không có liên kết chia sẻ — hãy gắn khách hàng này vào một inbound có giao thức tương thích trước.",
       "link": "Liên kết",
@@ -840,11 +860,21 @@
       "basePath": "Đường dẫn cơ sở",
       "apiToken": "Token API",
       "apiTokenPlaceholder": "Token từ trang Cài đặt của panel từ xa",
-      "apiTokenHint": "Panel từ xa hiển thị token API tại Cài đặt → Token API.",
+      "apiTokenHint": "Panel từ xa hiển thị token API tại Bảo mật → Token API.",
       "regenerate": "Tạo lại token",
       "regenerateConfirm": "Tạo lại sẽ vô hiệu hóa token hiện tại. Mọi panel trung tâm dùng nó sẽ mất quyền truy cập cho đến khi được cập nhật. Tiếp tục?",
       "allowPrivateAddress": "Cho phép địa chỉ riêng",
       "allowPrivateAddressHint": "Chỉ bật cho các nút trên mạng riêng hoặc VPN.",
+      "inboundSyncMode": "Nhập inbound",
+      "inboundSyncModeHint": "Chọn các inbound được nhập từ nút này. Các nút hiện có mặc định nhập tất cả.",
+      "allInbounds": "Tất cả inbound",
+      "selectedInbounds": "Inbound đã chọn",
+      "inboundTags": "Inbound",
+      "inboundTagsHint": "Lựa chọn được đối chiếu theo tag inbound. Lựa chọn trống sẽ không nhập gì.",
+      "inboundTagsPlaceholder": "Tải và chọn inbound",
+      "loadInbounds": "Tải inbound từ nút",
+      "inboundsLoaded": "Đã tải {{count}} inbound",
+      "inboundsLoadFailed": "Không thể tải inbound",
       "enable": "Kích hoạt",
       "status": "Trạng thái",
       "cpu": "CPU",

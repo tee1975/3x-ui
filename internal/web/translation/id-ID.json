@@ -95,7 +95,9 @@
     "active": "Aktif",
     "inactive": "Nonaktif",
     "unlimited": "Tanpa batas",
-    "noExpiry": "Tanpa kedaluwarsa"
+    "noExpiry": "Tanpa kedaluwarsa",
+    "copyAllConfigs": "Salin Semua Konfigurasi",
+    "copyAllConfigsCopied": "Semua konfigurasi tersalin"
   },
   "menu": {
     "theme": "Tema",
@@ -280,7 +282,8 @@
         "quickAdded": "Menambahkan {n} fallback",
         "quickAddedNone": "Tidak ada inbound baru yang memenuhi syarat",
         "routesWhen": "Diarahkan ketika",
-        "defaultCatchAll": "Default — menangkap apa pun lainnya"
+        "defaultCatchAll": "Default — menangkap apa pun lainnya",
+        "needsTls": "Fallback tersedia setelah memilih TLS atau Reality di tab Keamanan (hanya VLESS/Trojan melalui RAW)."
       },
       "protocol": "Protokol",
       "port": "Port",
@@ -587,7 +590,16 @@
         "mldsa65Seed": "mldsa65 Seed",
         "mldsa65Verify": "mldsa65 Verify",
         "getNewSeed": "Dapatkan Seed baru",
-        "listenHelp": "Anda juga dapat memasukkan path Unix socket (mis. /run/xray/in.sock) untuk listen pada socket alih-alih port TCP — dalam hal ini setel Port ke 0."
+        "listenHelp": "Anda juga dapat memasukkan path Unix socket (mis. /run/xray/in.sock) untuk listen pada socket alih-alih port TCP — dalam hal ini setel Port ke 0.",
+        "shareAddrStrategy": "Strategi alamat berbagi",
+        "shareAddrStrategyHelp": "Menentukan alamat yang ditulis ke tautan berbagi yang diekspor, kode QR, dan keluaran langganan.",
+        "shareAddr": "Alamat berbagi kustom",
+        "shareAddrHelp": "Hanya digunakan saat strategi alamat berbagi adalah Kustom. Masukkan host atau IP tanpa skema atau port.",
+        "shareAddrStrategyOptions": {
+          "node": "Alamat node",
+          "listen": "Alamat listen inbound",
+          "custom": "Kustom"
+        }
       },
       "info": {
         "mode": "Mode",
@@ -625,6 +637,8 @@
       }
     },
     "clients": {
+      "tabBasic": "Dasar",
+      "tabConfig": "Konfigurasi",
       "add": "Tambah klien",
       "edit": "Ubah klien",
       "submitAdd": "Tambah klien",
@@ -659,6 +673,10 @@
       "searchPlaceholder": "Cari email, komentar, sub ID, UUID, kata sandi, auth…",
       "filterTitle": "Filter klien",
       "clearAllFilters": "Hapus semua",
+      "filters": {
+        "nodes": "Node",
+        "localPanel": "Lokal (panel ini)"
+      },
       "showingCount": "Menampilkan {shown} dari {total}",
       "sortOldest": "Terlama dulu",
       "sortNewest": "Terbaru dulu",
@@ -701,6 +719,8 @@
       "duration": "Durasi",
       "attachedInbounds": "Inbound terlampir",
       "selectInbound": "Pilih satu atau lebih inbound",
+      "selectAllInbounds": "Pilih semua",
+      "clearAllInbounds": "Hapus semua",
       "noSubId": "Klien ini tidak punya subId, tidak ada tautan yang bisa dibagikan.",
       "noLinks": "Tidak ada tautan yang bisa dibagikan — lampirkan klien ini ke inbound yang mendukung protokol terlebih dahulu.",
       "link": "Tautan",
@@ -840,11 +860,21 @@
       "basePath": "Path dasar",
       "apiToken": "Token API",
       "apiTokenPlaceholder": "Token dari halaman Pengaturan panel jarak jauh",
-      "apiTokenHint": "Panel jarak jauh menampilkan token API-nya di Pengaturan → Token API.",
+      "apiTokenHint": "Panel jarak jauh menampilkan token API-nya di Otentikasi → Token API.",
       "regenerate": "Buat Ulang Token",
       "regenerateConfirm": "Membuat ulang akan membatalkan token saat ini. Setiap panel pusat yang menggunakannya akan kehilangan akses sampai diperbarui. Lanjutkan?",
       "allowPrivateAddress": "Izinkan alamat pribadi",
       "allowPrivateAddressHint": "Aktifkan hanya untuk node di jaringan pribadi atau VPN.",
+      "inboundSyncMode": "Impor inbound",
+      "inboundSyncModeHint": "Pilih inbound yang diimpor dari node ini. Node yang sudah ada mengimpor semua inbound secara default.",
+      "allInbounds": "Semua inbound",
+      "selectedInbounds": "Inbound terpilih",
+      "inboundTags": "Inbound",
+      "inboundTagsHint": "Pilihan dicocokkan berdasarkan tag inbound. Pilihan kosong tidak mengimpor apa pun.",
+      "inboundTagsPlaceholder": "Muat dan pilih inbound",
+      "loadInbounds": "Muat inbound dari node",
+      "inboundsLoaded": "{{count}} inbound dimuat",
+      "inboundsLoadFailed": "Gagal memuat inbound",
       "enable": "Aktif",
       "status": "Status",
       "cpu": "CPU",

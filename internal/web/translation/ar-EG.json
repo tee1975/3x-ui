@@ -95,7 +95,9 @@
     "active": "نشط",
     "inactive": "غير نشط",
     "unlimited": "غير محدود",
-    "noExpiry": "بدون انتهاء"
+    "noExpiry": "بدون انتهاء",
+    "copyAllConfigs": "نسخ جميع الإعدادات",
+    "copyAllConfigsCopied": "تم نسخ جميع الإعدادات"
   },
   "menu": {
     "theme": "الثيم",
@@ -280,7 +282,8 @@
         "quickAdded": "تمت إضافة {n} fallback",
         "quickAddedNone": "لا توجد inbounds جديدة مؤهلة للإضافة",
         "routesWhen": "يوجَّه عندما",
-        "defaultCatchAll": "افتراضي — يلتقط أي شيء آخر"
+        "defaultCatchAll": "افتراضي — يلتقط أي شيء آخر",
+        "needsTls": "تصبح الـ Fallbacks متاحة بعد اختيار TLS أو Reality في تبويب الأمان (فقط VLESS/Trojan عبر RAW)."
       },
       "protocol": "بروتوكول",
       "port": "المنفذ",
@@ -587,7 +590,16 @@
         "mldsa65Seed": "mldsa65 Seed",
         "mldsa65Verify": "mldsa65 Verify",
         "getNewSeed": "احصل على Seed جديد",
-        "listenHelp": "يمكنك أيضًا إدخال مسار Unix socket (مثل /run/xray/in.sock) للاستماع على socket بدلاً من منفذ TCP — في هذه الحالة اضبط المنفذ على 0."
+        "listenHelp": "يمكنك أيضًا إدخال مسار Unix socket (مثل /run/xray/in.sock) للاستماع على socket بدلاً من منفذ TCP — في هذه الحالة اضبط المنفذ على 0.",
+        "shareAddrStrategy": "استراتيجية عنوان المشاركة",
+        "shareAddrStrategyHelp": "تحدد العنوان الذي يُكتب في روابط المشاركة المصدّرة ورموز QR ومخرجات الاشتراك.",
+        "shareAddr": "عنوان مشاركة مخصص",
+        "shareAddrHelp": "يُستخدم فقط عندما تكون استراتيجية عنوان المشاركة مخصصة. أدخل اسم مضيف أو عنوان IP بدون بروتوكول أو منفذ.",
+        "shareAddrStrategyOptions": {
+          "node": "عنوان العقدة",
+          "listen": "عنوان استماع الوارد",
+          "custom": "مخصص"
+        }
       },
       "info": {
         "mode": "الوضع",
@@ -625,6 +637,8 @@
       }
     },
     "clients": {
+      "tabBasic": "أساسي",
+      "tabConfig": "التكوين",
       "add": "إضافة عميل",
       "edit": "تعديل العميل",
       "submitAdd": "إضافة عميل",
@@ -659,6 +673,10 @@
       "searchPlaceholder": "ابحث بالبريد، التعليق، sub ID، UUID، كلمة المرور، auth…",
       "filterTitle": "تصفية العملاء",
       "clearAllFilters": "مسح الكل",
+      "filters": {
+        "nodes": "النودز",
+        "localPanel": "محلي (هذه اللوحة)"
+      },
       "showingCount": "عرض {shown} من {total}",
       "sortOldest": "الأقدم أولاً",
       "sortNewest": "الأحدث أولاً",
@@ -701,6 +719,8 @@
       "duration": "المدة",
       "attachedInbounds": "الاتصالات الواردة المرتبطة",
       "selectInbound": "حدد اتصالاً واردًا واحدًا أو أكثر",
+      "selectAllInbounds": "تحديد الكل",
+      "clearAllInbounds": "مسح الكل",
       "noSubId": "هذا العميل ليس لديه subId، لا يوجد رابط قابل للمشاركة.",
       "noLinks": "لا توجد روابط للمشاركة — قم بإرفاق هذا العميل بأحد الاتصالات الواردة الداعمة للبروتوكول أولاً.",
       "link": "الرابط",
@@ -840,11 +860,21 @@
       "basePath": "المسار الأساسي",
       "apiToken": "رمز API",
       "apiTokenPlaceholder": "التوكن من صفحة إعدادات البانل البعيد",
-      "apiTokenHint": "البانل البعيد بيعرض توكن API بتاعه في الإعدادات → توكن API.",
+      "apiTokenHint": "البانل البعيد بيعرض توكن API بتاعه في المصادقة → توكن API.",
       "regenerate": "تجديد التوكن",
       "regenerateConfirm": "تجديد التوكن هيلغي التوكن الحالي. أي بانل مركزي بيستخدمه هيفقد الصلاحية لحد ما تحدّث التوكن. تكمّل؟",
       "allowPrivateAddress": "السماح بالعنوان الخاص",
       "allowPrivateAddressHint": "التفعيل فقط للعقد على شبكة خاصة أو VPN.",
+      "inboundSyncMode": "استيراد الاتصالات الواردة",
+      "inboundSyncModeHint": "اختر الاتصالات الواردة التي سيتم استيرادها من هذه العقدة. تستورد العقد الحالية جميع الاتصالات افتراضيًا.",
+      "allInbounds": "جميع الاتصالات الواردة",
+      "selectedInbounds": "الاتصالات الواردة المحددة",
+      "inboundTags": "الاتصالات الواردة",
+      "inboundTagsHint": "تتم المطابقة حسب وسم الاتصال الوارد. القائمة الفارغة لا تستورد أي اتصال.",
+      "inboundTagsPlaceholder": "حمّل الاتصالات الواردة وحددها",
+      "loadInbounds": "تحميل الاتصالات الواردة من العقدة",
+      "inboundsLoaded": "تم تحميل {{count}} اتصال وارد",
+      "inboundsLoadFailed": "فشل تحميل الاتصالات الواردة",
       "enable": "مفعل",
       "status": "الحالة",
       "cpu": "CPU",

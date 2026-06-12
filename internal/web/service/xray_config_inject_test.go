@@ -54,6 +54,71 @@ func TestEnsureAPIServices(t *testing.T) {
 	}
 }
 
+func TestEnsureStatsPolicy(t *testing.T) {
+	// default-template shape: level "0" exists with traffic flags — the online
+	// flag is added and the siblings survive untouched
+	out := ensureStatsPolicy(json_util.RawMessage(`{"levels":{"0":{"handshake":4,"statsUserUplink":true,"statsUserDownlink":true}},"system":{"statsInboundDownlink":true}}`))
+	var parsed struct {
+		Levels map[string]map[string]any `json:"levels"`
+		System map[string]any            `json:"system"`
+	}
+	if err := json.Unmarshal(out, &parsed); err != nil {
+		t.Fatal(err)
+	}
+	level0 := parsed.Levels["0"]
+	if level0["statsUserOnline"] != true {
+		t.Fatalf("statsUserOnline must be injected into level 0, got %v", level0)
+	}
+	if level0["statsUserUplink"] != true || level0["statsUserDownlink"] != true || level0["handshake"] != float64(4) {
+		t.Fatalf("sibling keys must be preserved, got %v", level0)
+	}
+	if parsed.System["statsInboundDownlink"] != true {
+		t.Fatalf("system block must be preserved, got %v", parsed.System)
+	}
+
+	// missing levels block: level "0" is created with the flag
+	out = ensureStatsPolicy(json_util.RawMessage(`{"system":{}}`))
+	if err := json.Unmarshal(out, &parsed); err != nil {
+		t.Fatal(err)
+	}
+	if parsed.Levels["0"]["statsUserOnline"] != true {
+		t.Fatalf("level 0 must be created with statsUserOnline, got %s", out)
+	}
+
+	// every level gets the flag, an explicit false included — the flag is
+	// panel infrastructure, like the api services
+	out = ensureStatsPolicy(json_util.RawMessage(`{"levels":{"0":{"statsUserOnline":false},"1":{"connIdle":300}}}`))
+	if err := json.Unmarshal(out, &parsed); err != nil {
+		t.Fatal(err)
+	}
+	for _, key := range []string{"0", "1"} {
+		if parsed.Levels[key]["statsUserOnline"] != true {
+			t.Fatalf("level %s must have statsUserOnline forced on, got %s", key, out)
+		}
+	}
+	if parsed.Levels["1"]["connIdle"] != float64(300) {
+		t.Fatalf("level 1 siblings must be preserved, got %s", out)
+	}
+
+	// already-enabled input passes through byte-identical (no marshal churn,
+	// no spurious restart)
+	full := json_util.RawMessage(`{"levels":{"0":{"statsUserOnline":true}}}`)
+	if got := ensureStatsPolicy(full); string(got) != string(full) {
+		t.Fatalf("already-enabled policy must pass through untouched, got %s", got)
+	}
+
+	// absent policy block stays absent
+	if got := ensureStatsPolicy(nil); got != nil {
+		t.Fatalf("nil policy must stay nil, got %s", got)
+	}
+
+	// unparsable policy is left untouched
+	bad := json_util.RawMessage(`{not json`)
+	if got := ensureStatsPolicy(bad); string(got) != string(bad) {
+		t.Fatalf("unparsable policy must be left untouched, got %s", got)
+	}
+}
+
 func egressTestConfig() *xray.Config {
 	return &xray.Config{
 		RouterConfig: json_util.RawMessage(`{"domainStrategy":"AsIs","rules":[{"type":"field","inboundTag":["api"],"outboundTag":"api"}]}`),
@@ -101,6 +166,55 @@ func TestInjectPanelEgress(t *testing.T) {
 	if first.Type != "field" || first.OutboundTag != "warp" ||
 		len(first.InboundTag) != 1 || first.InboundTag[0] != PanelEgressInboundTag {
 		t.Fatalf("egress rule must be prepended, got %+v", first)
+	}
+}
+
+func TestInjectPanelEgress_BalancerTag(t *testing.T) {
+	cfg := egressTestConfig()
+	cfg.RouterConfig = json_util.RawMessage(`{"domainStrategy":"AsIs","rules":[],"balancers":[{"tag":"lb","selector":["warp"]}]}`)
+
+	// A tag that names a balancer must be targeted via balancerTag so the
+	// router resolves it; an outbound tag coexisting with balancers still uses
+	// outboundTag.
+	injectPanelEgress(cfg, "lb")
+
+	var routing struct {
+		Rules []struct {
+			InboundTag  []string `json:"inboundTag"`
+			OutboundTag string   `json:"outboundTag"`
+			BalancerTag string   `json:"balancerTag"`
+			Type        string   `json:"type"`
+		} `json:"rules"`
+	}
+	if err := json.Unmarshal(cfg.RouterConfig, &routing); err != nil {
+		t.Fatal(err)
+	}
+	if len(routing.Rules) != 1 {
+		t.Fatalf("expected the egress rule, got %+v", routing.Rules)
+	}
+	first := routing.Rules[0]
+	if first.BalancerTag != "lb" || first.OutboundTag != "" {
+		t.Fatalf("a balancer tag must target balancerTag, not outboundTag, got %+v", first)
+	}
+	if len(first.InboundTag) != 1 || first.InboundTag[0] != PanelEgressInboundTag {
+		t.Fatalf("egress rule must bind the egress inbound, got %+v", first)
+	}
+
+	// A non-balancer tag alongside balancers keeps the plain outbound path.
+	cfg2 := egressTestConfig()
+	cfg2.RouterConfig = json_util.RawMessage(`{"rules":[],"balancers":[{"tag":"lb","selector":["warp"]}]}`)
+	injectPanelEgress(cfg2, "warp")
+	var routing2 struct {
+		Rules []struct {
+			OutboundTag string `json:"outboundTag"`
+			BalancerTag string `json:"balancerTag"`
+		} `json:"rules"`
+	}
+	if err := json.Unmarshal(cfg2.RouterConfig, &routing2); err != nil {
+		t.Fatal(err)
+	}
+	if routing2.Rules[0].OutboundTag != "warp" || routing2.Rules[0].BalancerTag != "" {
+		t.Fatalf("a concrete outbound must target outboundTag, got %+v", routing2.Rules[0])
 	}
 }
 

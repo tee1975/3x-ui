@@ -95,7 +95,9 @@
     "active": "Activo",
     "inactive": "Inactivo",
     "unlimited": "Ilimitado",
-    "noExpiry": "Sin caducidad"
+    "noExpiry": "Sin caducidad",
+    "copyAllConfigs": "Copiar Todas las Configuraciones",
+    "copyAllConfigsCopied": "Todas las configuraciones copiadas"
   },
   "menu": {
     "theme": "Tema",
@@ -280,7 +282,8 @@
         "quickAdded": "Se añadieron {n} fallback(s)",
         "quickAddedNone": "No hay nuevos inbounds elegibles",
         "routesWhen": "Enruta cuando",
-        "defaultCatchAll": "Por defecto — captura cualquier otra cosa"
+        "defaultCatchAll": "Por defecto — captura cualquier otra cosa",
+        "needsTls": "Los fallbacks estarán disponibles al seleccionar TLS o Reality en la pestaña de Seguridad (solo VLESS/Trojan sobre RAW)."
       },
       "protocol": "Protocolo",
       "port": "Puerto",
@@ -587,7 +590,16 @@
         "mldsa65Seed": "mldsa65 Seed",
         "mldsa65Verify": "mldsa65 Verify",
         "getNewSeed": "Obtener nuevo Seed",
-        "listenHelp": "También puedes introducir una ruta de socket Unix (p. ej. /run/xray/in.sock) para escuchar en un socket en lugar de un puerto TCP; en ese caso, establece el Puerto en 0."
+        "listenHelp": "También puedes introducir una ruta de socket Unix (p. ej. /run/xray/in.sock) para escuchar en un socket en lugar de un puerto TCP; en ese caso, establece el Puerto en 0.",
+        "shareAddrStrategy": "Estrategia de dirección para compartir",
+        "shareAddrStrategyHelp": "Controla qué dirección se escribe en los enlaces compartidos exportados, códigos QR y la salida de suscripción.",
+        "shareAddr": "Dirección compartida personalizada",
+        "shareAddrHelp": "Solo se usa cuando la estrategia de dirección para compartir es Personalizada. Introduce un host o IP sin esquema ni puerto.",
+        "shareAddrStrategyOptions": {
+          "node": "Dirección del nodo",
+          "listen": "Dirección de escucha del inbound",
+          "custom": "Personalizada"
+        }
       },
       "info": {
         "mode": "Modo",
@@ -625,6 +637,8 @@
       }
     },
     "clients": {
+      "tabBasic": "Básico",
+      "tabConfig": "Configuración",
       "add": "Añadir cliente",
       "edit": "Editar cliente",
       "submitAdd": "Añadir cliente",
@@ -659,6 +673,10 @@
       "searchPlaceholder": "Buscar email, comentario, sub ID, UUID, contraseña, auth…",
       "filterTitle": "Filtrar clientes",
       "clearAllFilters": "Limpiar todo",
+      "filters": {
+        "nodes": "Nodos",
+        "localPanel": "Local (este panel)"
+      },
       "showingCount": "Mostrando {shown} de {total}",
       "sortOldest": "Más antiguos",
       "sortNewest": "Más recientes",
@@ -701,6 +719,8 @@
       "duration": "Duración",
       "attachedInbounds": "Inbounds asociados",
       "selectInbound": "Selecciona uno o más inbounds",
+      "selectAllInbounds": "Seleccionar todo",
+      "clearAllInbounds": "Limpiar todo",
       "noSubId": "Este cliente no tiene subId, no hay enlace compartible.",
       "noLinks": "No hay enlaces compartibles — asocia primero este cliente a un inbound con protocolo válido.",
       "link": "Enlace",
@@ -840,11 +860,21 @@
       "basePath": "Ruta base",
       "apiToken": "Token API",
       "apiTokenPlaceholder": "Token desde la página de Configuración del panel remoto",
-      "apiTokenHint": "El panel remoto expone su token de API en Configuración → Token de API.",
+      "apiTokenHint": "El panel remoto expone su token de API en Configuraciones de Seguridad → Token de API.",
       "regenerate": "Regenerar token",
       "regenerateConfirm": "Regenerar invalida el token actual. Cualquier panel central que lo use perderá el acceso hasta que se actualice. ¿Continuar?",
       "allowPrivateAddress": "Permitir dirección privada",
       "allowPrivateAddressHint": "Habilitar solo para nodos en una red privada o VPN.",
+      "inboundSyncMode": "Importación de inbounds",
+      "inboundSyncModeHint": "Elige qué inbounds importar desde este nodo. Los nodos existentes importan todos de forma predeterminada.",
+      "allInbounds": "Todos los inbounds",
+      "selectedInbounds": "Inbounds seleccionados",
+      "inboundTags": "Inbounds",
+      "inboundTagsHint": "La selección se compara por la etiqueta del inbound. Una selección vacía no importa ninguno.",
+      "inboundTagsPlaceholder": "Carga y selecciona inbounds",
+      "loadInbounds": "Cargar inbounds desde el nodo",
+      "inboundsLoaded": "Se cargaron {{count}} inbounds",
+      "inboundsLoadFailed": "No se pudieron cargar los inbounds",
       "enable": "Habilitado",
       "status": "Estado",
       "cpu": "CPU",

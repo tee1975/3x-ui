@@ -288,6 +288,8 @@ export const EXAMPLES: Record<string, unknown> = {
     "protocol": "vless",
     "remark": "VLESS-443",
     "settings": null,
+    "shareAddr": "",
+    "shareAddrStrategy": "node",
     "sniffing": null,
     "streamSettings": null,
     "tag": "in-443-tcp",
@@ -313,6 +315,7 @@ export const EXAMPLES: Record<string, unknown> = {
   },
   "InboundOption": {
     "id": 1,
+    "nodeId": null,
     "port": 443,
     "protocol": "vless",
     "remark": "VLESS-443",
@@ -340,6 +343,10 @@ export const EXAMPLES: Record<string, unknown> = {
     "guid": "",
     "id": 1,
     "inboundCount": 5,
+    "inboundSyncMode": "all",
+    "inboundTags": [
+      ""
+    ],
     "lastError": "",
     "lastHeartbeat": 1700000000,
     "latencyMs": 42,

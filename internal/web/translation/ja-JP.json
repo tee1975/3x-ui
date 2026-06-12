@@ -95,7 +95,9 @@
     "active": "有効",
     "inactive": "無効",
     "unlimited": "無制限",
-    "noExpiry": "期限なし"
+    "noExpiry": "期限なし",
+    "copyAllConfigs": "すべての設定をコピー",
+    "copyAllConfigsCopied": "すべての設定をコピーしました"
   },
   "menu": {
     "theme": "テーマ",
@@ -280,7 +282,8 @@
         "quickAdded": "{n} 件のフォールバックを追加しました",
         "quickAddedNone": "追加可能な新規インバウンドはありません",
         "routesWhen": "次の条件でルーティング",
-        "defaultCatchAll": "デフォルト — その他すべてを捕捉"
+        "defaultCatchAll": "デフォルト — その他すべてを捕捉",
+        "needsTls": "フォールバックは、セキュリティタブで TLS または Reality を選択すると設定できます（RAW 上の VLESS/Trojan のみ）。"
       },
       "protocol": "プロトコル",
       "port": "ポート",
@@ -587,7 +590,16 @@
         "mldsa65Seed": "mldsa65 Seed",
         "mldsa65Verify": "mldsa65 Verify",
         "getNewSeed": "新しい Seed を取得",
-        "listenHelp": "TCP ポートの代わりに Unix ソケットのパス（例: /run/xray/in.sock）を入力してソケットでリッスンすることもできます。その場合はポートを 0 に設定してください。"
+        "listenHelp": "TCP ポートの代わりに Unix ソケットのパス（例: /run/xray/in.sock）を入力してソケットでリッスンすることもできます。その場合はポートを 0 に設定してください。",
+        "shareAddrStrategy": "共有アドレス戦略",
+        "shareAddrStrategyHelp": "エクスポートされる共有リンク、QRコード、サブスクリプション出力に書き込むアドレスを制御します。",
+        "shareAddr": "カスタム共有アドレス",
+        "shareAddrHelp": "共有アドレス戦略がカスタムの場合のみ使用されます。スキームやポートを含めずにホスト名またはIPを入力してください。",
+        "shareAddrStrategyOptions": {
+          "node": "ノードアドレス",
+          "listen": "インバウンドのリッスンアドレス",
+          "custom": "カスタム"
+        }
       },
       "info": {
         "mode": "モード",
@@ -625,6 +637,8 @@
       }
     },
     "clients": {
+      "tabBasic": "基本",
+      "tabConfig": "設定",
       "add": "クライアントを追加",
       "edit": "クライアントを編集",
       "submitAdd": "クライアントを追加",
@@ -659,6 +673,10 @@
       "searchPlaceholder": "メール、コメント、sub ID、UUID、パスワード、auth を検索…",
       "filterTitle": "クライアントをフィルタ",
       "clearAllFilters": "すべてクリア",
+      "filters": {
+        "nodes": "ノード",
+        "localPanel": "ローカル（このパネル）"
+      },
       "showingCount": "{total} 件中 {shown} 件を表示",
       "sortOldest": "古い順",
       "sortNewest": "新しい順",
@@ -701,6 +719,8 @@
       "duration": "期間",
       "attachedInbounds": "関連付けされたインバウンド",
       "selectInbound": "1 つ以上のインバウンドを選択",
+      "selectAllInbounds": "すべて選択",
+      "clearAllInbounds": "すべてクリア",
       "noSubId": "このクライアントには subId がなく、共有可能なリンクはありません。",
       "noLinks": "共有可能なリンクがありません — まずこのクライアントを対応するプロトコルのインバウンドに関連付けてください。",
       "link": "リンク",
@@ -840,11 +860,21 @@
       "basePath": "ベースパス",
       "apiToken": "API トークン",
       "apiTokenPlaceholder": "リモートパネルの設定ページから取得したトークン",
-      "apiTokenHint": "リモートパネルでは、設定 → APIトークン でAPIトークンを確認できます。",
+      "apiTokenHint": "リモートパネルでは、セキュリティ設定 → APIトークン でAPIトークンを確認できます。",
       "regenerate": "トークンを再生成",
       "regenerateConfirm": "再生成すると現在のトークンは無効になります。これを使用しているすべての中央パネルは更新されるまでアクセスできなくなります。続行しますか？",
       "allowPrivateAddress": "プライベートアドレスを許可",
       "allowPrivateAddressHint": "プライベートネットワークまたはVPN上のノードにのみ有効にします。",
+      "inboundSyncMode": "インバウンドのインポート",
+      "inboundSyncModeHint": "このノードからインポートするインバウンドを選択します。既存のノードは既定ですべてをインポートします。",
+      "allInbounds": "すべてのインバウンド",
+      "selectedInbounds": "選択したインバウンド",
+      "inboundTags": "インバウンド",
+      "inboundTagsHint": "インバウンドタグで照合します。何も選択しない場合はインポートされません。",
+      "inboundTagsPlaceholder": "インバウンドを読み込んで選択",
+      "loadInbounds": "ノードからインバウンドを読み込む",
+      "inboundsLoaded": "{{count}}件のインバウンドを読み込みました",
+      "inboundsLoadFailed": "インバウンドを読み込めませんでした",
       "enable": "有効",
       "status": "ステータス",
       "cpu": "CPU",

@@ -1332,6 +1332,17 @@
             "type": "string"
           },
           "settings": {},
+          "shareAddr": {
+            "type": "string"
+          },
+          "shareAddrStrategy": {
+            "enum": [
+              "node",
+              "listen",
+              "custom"
+            ],
+            "type": "string"
+          },
           "sniffing": {},
           "streamSettings": {},
           "tag": {
@@ -1370,6 +1381,8 @@
           "protocol",
           "remark",
           "settings",
+          "shareAddr",
+          "shareAddrStrategy",
           "sniffing",
           "streamSettings",
           "tag",
@@ -1444,6 +1457,11 @@
         "properties": {
           "id": {
             "example": 1,
+            "type": "integer"
+          },
+          "nodeId": {
+            "description": "Hosting node; nil for this panel's own inbounds. Lets the clients\npage map a node filter onto inbound IDs (#4997).",
+            "nullable": true,
             "type": "integer"
           },
           "port": {
@@ -1559,6 +1577,19 @@
             "example": 5,
             "type": "integer"
           },
+          "inboundSyncMode": {
+            "enum": [
+              "all",
+              "selected"
+            ],
+            "type": "string"
+          },
+          "inboundTags": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
           "lastError": {
             "type": "string"
           },
@@ -1662,6 +1693,8 @@
           "guid",
           "id",
           "inboundCount",
+          "inboundSyncMode",
+          "inboundTags",
           "lastError",
           "lastHeartbeat",
           "latencyMs",
@@ -2116,6 +2149,8 @@
                       "protocol": "vless",
                       "remark": "VLESS-443",
                       "settings": null,
+                      "shareAddr": "",
+                      "shareAddrStrategy": "node",
                       "sniffing": null,
                       "streamSettings": null,
                       "tag": "in-443-tcp",
@@ -2185,7 +2220,7 @@
         "tags": [
           "Inbounds"
         ],
-        "summary": "Lightweight picker projection of the authenticated user’s inbounds. Returns id, remark, tag, protocol, port, a server-computed tlsFlowCapable flag (true for VLESS / port-fallback on TCP with tls or reality), and ssMethod (the Shadowsocks cipher, empty for non-Shadowsocks inbounds — used by the client UI to generate a valid Shadowsocks 2022 PSK). Use this for dropdowns and attach pickers — it skips settings, streamSettings, and clientStats so the payload stays small even on panels with thousands of clients.",
+        "summary": "Lightweight picker projection of the authenticated user’s inbounds. Returns id, remark, tag, protocol, port, a server-computed tlsFlowCapable flag (true for VLESS on TCP with tls or reality, or on XHTTP with VLESS encryption / vlessenc enabled), and ssMethod (the Shadowsocks cipher, empty for non-Shadowsocks inbounds — used by the client UI to generate a valid Shadowsocks 2022 PSK). Use this for dropdowns and attach pickers — it skips settings, streamSettings, and clientStats so the payload stays small even on panels with thousands of clients.",
         "operationId": "get_panel_api_inbounds_options",
         "responses": {
           "200": {
@@ -2214,6 +2249,7 @@
                   "obj": [
                     {
                       "id": 1,
+                      "nodeId": null,
                       "port": 443,
                       "protocol": "vless",
                       "remark": "VLESS-443",
@@ -2702,6 +2738,59 @@
                     },
                     "obj": {}
                   }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/inbounds/pushClientTraffics": {
+      "post": {
+        "tags": [
+          "Inbounds"
+        ],
+        "summary": "Receive a master panel's aggregated per-client usage, keyed by the master's GUID. Stored in a side table used only for the UI display overlay and local quota enforcement — never folded into the local counters that masters poll, so delta accounting stays intact. Called panel-to-panel by the node traffic sync job.",
+        "operationId": "post_panel_api_inbounds_pushClientTraffics",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              },
+              "example": {
+                "masterGuid": "9f6c2d-…",
+                "traffics": [
+                  {
+                    "email": "alice",
+                    "up": 1048576,
+                    "down": 2097152
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                },
+                "example": {
+                  "success": true
                 }
               }
             }
@@ -5943,6 +6032,10 @@
                       "guid": "",
                       "id": 1,
                       "inboundCount": 5,
+                      "inboundSyncMode": "all",
+                      "inboundTags": [
+                        ""
+                      ],
                       "lastError": "",
                       "lastHeartbeat": 1700000000,
                       "latencyMs": 42,
@@ -6376,6 +6469,65 @@
                 "example": {
                   "success": true,
                   "obj": "k3b1...base64-sha256...="
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/panel/api/nodes/inbounds": {
+      "post": {
+        "tags": [
+          "Nodes"
+        ],
+        "summary": "Use unsaved node connection details to list the remote inbounds available for selective import.",
+        "operationId": "post_panel_api_nodes_inbounds",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              },
+              "example": {
+                "name": "de-fra-1",
+                "scheme": "https",
+                "address": "node1.example.com",
+                "port": 2053,
+                "basePath": "/",
+                "apiToken": "abcdef..."
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "msg": {
+                      "type": "string"
+                    },
+                    "obj": {}
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "obj": [
+                    {
+                      "tag": "inbound-443",
+                      "remark": "VLESS",
+                      "protocol": "vless",
+                      "port": 443
+                    }
+                  ]
                 }
               }
             }
