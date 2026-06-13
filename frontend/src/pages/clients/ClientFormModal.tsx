@@ -8,15 +8,17 @@ import {
   Input,
   InputNumber,
   Modal,
+  Popconfirm,
   Row,
   Select,
   Space,
   Switch,
   Tabs,
   Tag,
+  Tooltip,
   message,
 } from 'antd';
-import { EyeOutlined, ReloadOutlined } from '@ant-design/icons';
+import { EyeOutlined, ReloadOutlined, RetweetOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import type { Dayjs } from 'dayjs';
 import { HttpUtil, RandomUtil } from '@/utils';
@@ -38,6 +40,7 @@ const CLIENT_IP_LOG_MODAL_Z_INDEX = CLIENT_FORM_MODAL_Z_INDEX + 1;
 
 interface ApiMsg<T = unknown> {
   success?: boolean;
+  msg?: string;
   obj?: T;
 }
 
@@ -71,6 +74,7 @@ interface ClientFormModalProps {
     payload: Record<string, unknown> | SaveCreatePayload,
     meta: SaveMetaEdit | SaveMetaCreate,
   ) => Promise<ApiMsg | null>;
+  resetTraffic?: (client: ClientRecord) => Promise<ApiMsg | null>;
   onOpenChange: (open: boolean) => void;
 }
 
@@ -139,6 +143,7 @@ export default function ClientFormModal({
   tgBotEnable = false,
   groups = [],
   save,
+  resetTraffic,
   onOpenChange,
 }: ClientFormModalProps) {
   const { t } = useTranslation();
@@ -147,6 +152,7 @@ export default function ClientFormModal({
 
   const [form, setForm] = useState<FormState>(emptyForm);
   const [submitting, setSubmitting] = useState(false);
+  const [resetting, setResetting] = useState(false);
   const [clientIps, setClientIps] = useState<string[]>([]);
   const [ipsLoading, setIpsLoading] = useState(false);
   const [ipsClearing, setIpsClearing] = useState(false);
@@ -327,6 +333,21 @@ export default function ClientFormModal({
     onOpenChange(false);
   }
 
+  async function onResetTraffic() {
+    if (!isEdit || !client?.email || !resetTraffic) return;
+    setResetting(true);
+    try {
+      const msg = await resetTraffic(client);
+      if (msg?.success) {
+        messageApi.success(t('pages.clients.toasts.trafficReset'));
+      } else {
+        messageApi.error(msg?.msg || t('somethingWentWrong'));
+      }
+    } finally {
+      setResetting(false);
+    }
+  }
+
   async function onSubmit() {
     const schema = isEdit ? ClientFormSchema : ClientCreateFormSchema;
     const validated = schema.safeParse({
@@ -412,15 +433,35 @@ export default function ClientFormModal({
         open={open}
         title={isEdit ? t('pages.clients.editClient') : t('pages.clients.addClient')}
         destroyOnHidden
-        okText={isEdit ? t('save') : t('create')}
-        cancelText={t('cancel')}
-        okButtonProps={{ loading: submitting }}
         width={720}
         zIndex={CLIENT_FORM_MODAL_Z_INDEX}
         style={{ top: 20 }}
         styles={{ body: { maxHeight: 'calc(100vh - 160px)', overflowY: 'auto', overflowX: 'hidden' } }}
-        onOk={onSubmit}
         onCancel={close}
+        footer={
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            {isEdit && resetTraffic && (
+              <Popconfirm
+                title={t('pages.inbounds.resetTraffic')}
+                description={t('pages.inbounds.resetTrafficContent')}
+                okText={t('reset')}
+                cancelText={t('cancel')}
+                zIndex={CLIENT_IP_LOG_MODAL_Z_INDEX}
+                onConfirm={onResetTraffic}
+              >
+                <Button color="danger" variant="filled" icon={<RetweetOutlined />} loading={resetting}>
+                  {t('pages.inbounds.resetTraffic')}
+                </Button>
+              </Popconfirm>
+            )}
+            <div style={{ marginInlineStart: 'auto', display: 'flex', gap: 8 }}>
+              <Button onClick={close}>{t('cancel')}</Button>
+              <Button type="primary" loading={submitting} onClick={onSubmit}>
+                {isEdit ? t('save') : t('create')}
+              </Button>
+            </div>
+          </div>
+        }
       >
         <Form layout="vertical">
           <Tabs
@@ -428,7 +469,7 @@ export default function ClientFormModal({
             items={[
               {
                 key: 'basic',
-                label: t('pages.clients.tabBasic'),
+                label: t('pages.clients.tabBasics'),
                 children: (
                   <>
                     <Row gutter={16}>
@@ -441,20 +482,31 @@ export default function ClientFormModal({
                               style={{ flex: 1 }}
                               onChange={(e) => update('email', e.target.value)}
                             />
-                            <Button icon={<ReloadOutlined />} onClick={() => update('email', RandomUtil.randomLowerAndNum(12))} />
+                            {!isEdit && (
+                              <Button icon={<ReloadOutlined />} onClick={() => update('email', RandomUtil.randomLowerAndNum(12))} />
+                            )}
                           </Space.Compact>
                         </Form.Item>
                       </Col>
-                      <Col xs={24} md={8}>
-                        <Form.Item label={t('pages.clients.totalGB')}>
+                      <Col xs={24} md={6}>
+                        <Form.Item label={t('pages.clients.totalGB')} tooltip={t('pages.clients.totalGBDesc')}>
                           <InputNumber value={form.totalGB} min={0} step={1} style={{ width: '100%' }}
                             onChange={(v) => update('totalGB', Number(v) || 0)} />
                         </Form.Item>
                       </Col>
-                      <Col xs={24} md={4}>
-                        <Form.Item label={t('pages.clients.limitIp')}>
-                          <InputNumber value={form.limitIp} min={0} style={{ width: '100%' }}
-                            onChange={(v) => update('limitIp', Number(v) || 0)} />
+                      <Col xs={24} md={6}>
+                        <Form.Item label={t('pages.clients.limitIp')} tooltip={t('pages.clients.limitIpDesc')}>
+                          <Space.Compact style={{ display: 'flex' }}>
+                            <InputNumber value={form.limitIp} min={0} style={{ flex: 1 }}
+                              onChange={(v) => update('limitIp', Number(v) || 0)} />
+                            {isEdit && (
+                              <Tooltip title={t('pages.clients.ipLog')}>
+                                <Button icon={<EyeOutlined />} loading={ipsLoading} onClick={openIpsModal}>
+                                  {clientIps.length > 0 ? clientIps.length : ''}
+                                </Button>
+                              </Tooltip>
+                            )}
+                          </Space.Compact>
                         </Form.Item>
                       </Col>
                     </Row>
@@ -489,7 +541,7 @@ export default function ClientFormModal({
                       </Col>
                       <Col xs={12} md={6}>
                         <Form.Item
-                          label={t('pages.clients.renew')}
+                          label={t('pages.clients.renewDays')}
                           tooltip={t('pages.clients.renewDesc')}
                         >
                           <InputNumber value={form.reset} min={0} style={{ width: '100%' }}
@@ -499,16 +551,7 @@ export default function ClientFormModal({
                     </Row>
 
                     <Row gutter={16}>
-                      {tgBotEnable && (
-                        <Col xs={24} md={12}>
-                          <Form.Item label={t('pages.clients.telegramId')}>
-                            <InputNumber value={form.tgId} min={0} controls={false}
-                              placeholder={t('pages.clients.telegramIdPlaceholder')} style={{ width: '100%' }}
-                              onChange={(v) => update('tgId', Number(v) || 0)} />
-                          </Form.Item>
-                        </Col>
-                      )}
-                      <Col xs={24} md={tgBotEnable ? 12 : 24}>
+                      <Col xs={24} md={12}>
                         <Form.Item label={t('pages.clients.comment')}>
                           <Input value={form.comment} onChange={(e) => update('comment', e.target.value)} />
                         </Form.Item>
@@ -520,15 +563,33 @@ export default function ClientFormModal({
                             placeholder={t('pages.clients.groupPlaceholder')}
                             options={groups.map((g) => ({ value: g }))}
                             onChange={(v) => update('group', v ?? '')}
-                            filterOption={(input, option) =>
-                              String(option?.value ?? '').toLowerCase().includes((input || '').toLowerCase())
-                            }
                             allowClear
-                            style={{ width: '100%' }}
                           />
                         </Form.Item>
                       </Col>
                     </Row>
+
+                    {(tgBotEnable || showReverseTag) && (
+                      <Row gutter={16}>
+                        {tgBotEnable && (
+                          <Col xs={24} md={12}>
+                            <Form.Item label={t('pages.clients.telegramId')}>
+                              <InputNumber value={form.tgId} min={0} controls={false}
+                                placeholder={t('pages.clients.telegramIdPlaceholder')} style={{ width: '100%' }}
+                                onChange={(v) => update('tgId', Number(v) || 0)} />
+                            </Form.Item>
+                          </Col>
+                        )}
+                        {showReverseTag && (
+                          <Col xs={24} md={12}>
+                            <Form.Item label={t('pages.clients.reverseTag')}>
+                              <Input value={form.reverseTag} placeholder={t('pages.clients.reverseTagPlaceholder')}
+                                onChange={(e) => update('reverseTag', e.target.value)} />
+                            </Form.Item>
+                          </Col>
+                        )}
+                      </Row>
+                    )}
 
                     <Form.Item label={t('pages.clients.attachedInbounds')} required={!isEdit}>
                       <SelectAllClearButtons
@@ -555,20 +616,12 @@ export default function ClientFormModal({
                       <Switch checked={form.enable} onChange={(v) => update('enable', v)} />
                       <span style={{ marginLeft: 8 }}>{t('enable')}</span>
                     </Form.Item>
-
-                    {isEdit && (
-                      <Form.Item label={t('pages.clients.ipLog')}>
-                        <Button icon={<EyeOutlined />} loading={ipsLoading} onClick={openIpsModal}>
-                          {clientIps.length > 0 ? clientIps.length : ''}
-                        </Button>
-                      </Form.Item>
-                    )}
                   </>
                 ),
               },
               {
                 key: 'config',
-                label: t('pages.clients.tabConfig'),
+                label: t('pages.clients.tabCredentials'),
                 children: (
                   <>
                     <Row gutter={16}>
@@ -632,14 +685,6 @@ export default function ClientFormModal({
                               onChange={(v) => update('security', v)}
                               options={VMESS_SECURITY_OPTIONS.map((k) => ({ value: k, label: k }))}
                             />
-                          </Form.Item>
-                        </Col>
-                      )}
-                      {showReverseTag && (
-                        <Col xs={24} md={12}>
-                          <Form.Item label={t('pages.clients.reverseTag')}>
-                            <Input value={form.reverseTag} placeholder={t('pages.clients.reverseTagPlaceholder')}
-                              onChange={(e) => update('reverseTag', e.target.value)} />
                           </Form.Item>
                         </Col>
                       )}
