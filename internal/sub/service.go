@@ -47,6 +47,12 @@ type SubService struct {
 	// inbound whose NodeID is set. Keeps the per-link host derivation
 	// O(1) instead of O(N) DB hits.
 	nodesByID map[int]*model.Node
+	// statsByEmail maps a client email to its traffic row across ALL inbounds
+	// loaded for the request. client_traffics.email is globally unique, so this
+	// lets statsForClient resolve usage for a client even on an inbound that
+	// doesn't own its row (multi-inbound subscriptions). Filled in
+	// getInboundsBySubId; reset per request in PrepareForRequest.
+	statsByEmail map[string]xray.ClientTraffic
 }
 
 // NewSubService creates a new subscription service with the given configuration.
@@ -78,6 +84,7 @@ func (s *SubService) PrepareForRequest(host string) {
 	}
 	s.address = host
 	s.usageShown = map[string]bool{}
+	s.statsByEmail = map[string]xray.ClientTraffic{}
 	s.loadNodes()
 	s.loadRemarkSettings()
 }
@@ -335,7 +342,22 @@ func (s *SubService) getInboundsBySubId(subId string) ([]*model.Inbound, error) 
 	if err != nil {
 		return nil, err
 	}
+	s.indexStatsByEmail(inbounds)
 	return inbounds, nil
+}
+
+// indexStatsByEmail records every loaded inbound's client traffic rows keyed by
+// email so statsForClient can resolve a client's usage even on an inbound that
+// doesn't own its (globally unique) client_traffics row. See statsByEmail.
+func (s *SubService) indexStatsByEmail(inbounds []*model.Inbound) {
+	if s.statsByEmail == nil {
+		s.statsByEmail = map[string]xray.ClientTraffic{}
+	}
+	for _, inbound := range inbounds {
+		for _, st := range inbound.ClientStats {
+			s.statsByEmail[st.Email] = st
+		}
+	}
 }
 
 // projectThroughFallbackMaster mutates the inbound in place so its
@@ -510,10 +532,10 @@ func (s *SubService) genVmessLink(inbound *model.Inbound, email string) string {
 	externalProxies, _ := stream["externalProxy"].([]any)
 
 	if len(externalProxies) > 0 {
-		return s.buildVmessExternalProxyLinks(externalProxies, obj, inbound, email)
+		return s.buildVmessExternalProxyLinks(externalProxies, obj, inbound, email, network)
 	}
 
-	obj["ps"] = s.genRemark(inbound, email, "")
+	obj["ps"] = s.genRemark(inbound, email, "", network)
 	return buildVmessLink(obj)
 }
 
@@ -597,13 +619,13 @@ func (s *SubService) genVlessLink(inbound *model.Inbound, email string) string {
 				return fmt.Sprintf("vless://%s@%s", uuid, joinHostPort(dest, port))
 			},
 			func(ep map[string]any) string {
-				return s.endpointRemark(inbound, email, ep)
+				return s.endpointRemark(inbound, email, ep, streamNetwork)
 			},
 		)
 	}
 
 	link := fmt.Sprintf("vless://%s@%s", uuid, joinHostPort(address, port))
-	return buildLinkWithParams(link, params, s.genRemark(inbound, email, ""))
+	return buildLinkWithParams(link, params, s.genRemark(inbound, email, "", streamNetwork))
 }
 
 func (s *SubService) genTrojanLink(inbound *model.Inbound, email string) string {
@@ -648,13 +670,13 @@ func (s *SubService) genTrojanLink(inbound *model.Inbound, email string) string 
 				return fmt.Sprintf("trojan://%s@%s", password, joinHostPort(dest, port))
 			},
 			func(ep map[string]any) string {
-				return s.endpointRemark(inbound, email, ep)
+				return s.endpointRemark(inbound, email, ep, streamNetwork)
 			},
 		)
 	}
 
 	link := fmt.Sprintf("trojan://%s@%s", password, joinHostPort(address, port))
-	return buildLinkWithParams(link, params, s.genRemark(inbound, email, ""))
+	return buildLinkWithParams(link, params, s.genRemark(inbound, email, "", streamNetwork))
 }
 
 // encodeUserinfo percent-encodes a userinfo (password/auth) value so it
@@ -716,9 +738,16 @@ func (s *SubService) genShadowsocksLink(inbound *model.Inbound, email string) st
 		params["plugin"] = "obfs-local;obfs=http;obfs-host=" + host
 	}
 
-	encPart := fmt.Sprintf("%s:%s", method, clients[clientIndex].Password)
-	if method[0] == '2' {
-		encPart = fmt.Sprintf("%s:%s:%s", method, inboundPassword, clients[clientIndex].Password)
+	// SIP002 userinfo is base64(method:password). For SIP022 (2022-blake3-*) the
+	// userinfo MUST NOT be base64-encoded; method and password are percent-encoded.
+	var userInfo string
+	if strings.HasPrefix(method, "2022") {
+		userInfo = fmt.Sprintf("%s:%s:%s",
+			url.QueryEscape(method),
+			url.QueryEscape(inboundPassword),
+			url.QueryEscape(clients[clientIndex].Password))
+	} else {
+		userInfo = base64.RawURLEncoding.EncodeToString([]byte(fmt.Sprintf("%s:%s", method, clients[clientIndex].Password)))
 	}
 
 	externalProxies, _ := stream["externalProxy"].([]any)
@@ -731,16 +760,16 @@ func (s *SubService) genShadowsocksLink(inbound *model.Inbound, email string) st
 			proxyParams,
 			security,
 			func(dest string, port int) string {
-				return fmt.Sprintf("ss://%s@%s", base64.RawURLEncoding.EncodeToString([]byte(encPart)), joinHostPort(dest, port))
+				return fmt.Sprintf("ss://%s@%s", userInfo, joinHostPort(dest, port))
 			},
 			func(ep map[string]any) string {
-				return s.endpointRemark(inbound, email, ep)
+				return s.endpointRemark(inbound, email, ep, streamNetwork)
 			},
 		)
 	}
 
-	link := fmt.Sprintf("ss://%s@%s", base64.RawURLEncoding.EncodeToString([]byte(encPart)), joinHostPort(address, inbound.Port))
-	return buildLinkWithParams(link, params, s.genRemark(inbound, email, ""))
+	link := fmt.Sprintf("ss://%s@%s", userInfo, joinHostPort(address, inbound.Port))
+	return buildLinkWithParams(link, params, s.genRemark(inbound, email, "", streamNetwork))
 }
 
 func (s *SubService) genHysteriaLink(inbound *model.Inbound, email string) string {
@@ -843,7 +872,7 @@ func (s *SubService) genHysteriaLink(inbound *model.Inbound, email string) strin
 			applyExternalProxyHysteriaParams(ep, epParams)
 
 			link := fmt.Sprintf("%s://%s@%s", protocol, auth, joinHostPort(dest, int(portF)))
-			links = append(links, buildLinkWithParams(link, epParams, s.endpointRemark(inbound, email, ep)))
+			links = append(links, buildLinkWithParams(link, epParams, s.endpointRemark(inbound, email, ep, "quic")))
 		}
 		return strings.Join(links, "\n")
 	}
@@ -854,7 +883,7 @@ func (s *SubService) genHysteriaLink(inbound *model.Inbound, email string) strin
 		params["mport"] = hopPorts
 	}
 	link := fmt.Sprintf("%s://%s@%s", protocol, auth, joinHostPort(s.resolveInboundAddress(inbound), inbound.Port))
-	return buildLinkWithParams(link, params, s.genRemark(inbound, email, ""))
+	return buildLinkWithParams(link, params, s.genRemark(inbound, email, "", "quic"))
 }
 
 // hysteriaHopPorts returns the configured Hysteria2 UDP port-hopping range
@@ -1465,14 +1494,15 @@ func joinAnyStrings(items []any) string {
 
 // buildVmessExternalProxyLinks is a thin adapter: it maps the legacy
 // externalProxy entries to []ShareEndpoint and renders them through the unified
-// endpoint path. Kept so genVmessLink's call site is unchanged.
-func (s *SubService) buildVmessExternalProxyLinks(externalProxies []any, baseObj map[string]any, inbound *model.Inbound, email string) string {
+// endpoint path. Kept as a thin shim over the unified endpoint builder so
+// genVmessLink keeps calling one helper (now threading transport through).
+func (s *SubService) buildVmessExternalProxyLinks(externalProxies []any, baseObj map[string]any, inbound *model.Inbound, email string, transport string) string {
 	eps := make([]ShareEndpoint, 0, len(externalProxies))
 	for _, externalProxy := range externalProxies {
 		ep, _ := externalProxy.(map[string]any)
 		eps = append(eps, externalProxyToEndpoint(ep))
 	}
-	return s.buildEndpointVmessLinks(eps, baseObj, inbound, email)
+	return s.buildEndpointVmessLinks(eps, baseObj, inbound, email, transport)
 }
 
 // buildLinkWithParams appends ?query and #fragment to a pre-built
@@ -1559,9 +1589,9 @@ func cloneStringMap(source map[string]string) map[string]string {
 // externalProxy / synthetic JSON-Clash entry). In the subscription body a set
 // remark template takes over; otherwise (and in every display context) the
 // remark is just the config name (inbound remark, then extra).
-func (s *SubService) genRemark(inbound *model.Inbound, email string, extra string) string {
+func (s *SubService) genRemark(inbound *model.Inbound, email string, extra string, transport string) string {
 	if s.remarkTemplate != "" && s.subscriptionBody {
-		return s.genTemplatedRemark(inbound, s.lookupClient(inbound, email), extra)
+		return s.genTemplatedRemark(inbound, s.lookupClient(inbound, email), extra, transport)
 	}
 	// Sub info page + panel link/QR displays: just the config name (no template,
 	// so no per-client email/usage leaks into the shown remark).
@@ -1634,6 +1664,10 @@ func buildXhttpExtra(xhttp map[string]any) map[string]any {
 		return nil
 	}
 	extra := map[string]any{}
+
+	if mode, ok := xhttp["mode"].(string); ok && len(mode) > 0 {
+		extra["mode"] = mode
+	}
 
 	if xpb, ok := xhttp["xPaddingBytes"].(string); ok && len(xpb) > 0 {
 		extra["xPaddingBytes"] = xpb
